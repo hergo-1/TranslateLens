@@ -10,8 +10,10 @@ import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import com.translatelens.data.image.ImageFiles
 import com.translatelens.data.image.Renderer
+import com.translatelens.data.image.TextGrouping
 import com.translatelens.data.image.imageResult
 import com.translatelens.data.model.TranslatedImageResult
+import com.translatelens.data.model.TranslatedRegion
 import com.translatelens.data.model.TranslationResult
 import com.translatelens.domain.repository.ImageTranslationRepository
 import com.translatelens.domain.repository.OcrRepository
@@ -41,56 +43,68 @@ class ImageTranslationRepositoryImpl(
             try {
                 onProgress(0.2f)
                 val ocr = ocrRepository.recognizeTextFromBitmap(bitmap).getOrElse { e ->
-                    bitmap.recycle()
+                    recycleQuietly(bitmap)
                     return Result.failure(e)
                 }
                 if (ocr.textBlocks.isEmpty()) {
-                    bitmap.recycle()
+                    recycleQuietly(bitmap)
                     return Result.failure(IllegalStateException("لم يتم العثور على نص في الصورة"))
                 }
-                onProgress(0.45f)
-                val texts = ocr.textBlocks.map { it.text }
-                val translations = translationRepository.translateBatch(texts, sourceLang, targetLang).getOrElse { e ->
-                    bitmap.recycle()
+                onProgress(0.4f)
+                val paragraphs = TextGrouping.groupIntoParagraphs(ocr.textBlocks)
+                if (paragraphs.isEmpty()) {
+                    recycleQuietly(bitmap)
+                    return Result.failure(IllegalStateException("لم يتم العثور على نص في الصورة"))
+                }
+                onProgress(0.5f)
+                val paragraphTexts = paragraphs.map { it.text }
+                val translatedParagraphs = translateParagraphs(paragraphTexts, sourceLang, targetLang).getOrElse { e ->
+                    recycleQuietly(bitmap)
                     return Result.failure(e)
                 }
                 onProgress(0.7f)
-                val translatedBitmap = withContext(Dispatchers.Default) {
-                    renderer.render(bitmap, ocr, translations.map { it.translatedText }, targetLang)
+                val regions = paragraphs.mapIndexed { index, p ->
+                    TranslatedRegion(
+                        index = index,
+                        originalText = p.text,
+                        translatedText = translatedParagraphs[index],
+                        sourceLanguage = sourceLang,
+                        targetLanguage = targetLang,
+                        boundingBox = p.boundingBox,
+                        cornerPoints = p.cornerPoints
+                    )
                 }
-                bitmap.recycle()
+                val translatedBitmap = withContext(Dispatchers.Default) {
+                    renderer.renderRegions(bitmap, regions, targetLang)
+                }
+                recycleQuietly(bitmap)
                 onProgress(0.85f)
                 val normalizedBitmap = imageFiles.decode(imagePath)
                 val normalizedOriginal = try {
                     imageFiles.write(normalizedBitmap, "original")
                 } finally {
-                    try {
-                        normalizedBitmap.recycle()
-                    } catch (_: Exception) {
-                    }
+                    recycleQuietly(normalizedBitmap)
                 }
                 val translatedPath = imageFiles.write(translatedBitmap, "translated")
-                translatedBitmap.recycle()
+                recycleQuietly(translatedBitmap)
                 onProgress(1f)
+                val translations = regions.map {
+                    TranslationResult(it.originalText, it.translatedText, sourceLang, targetLang)
+                }
                 return Result.success(
                     TranslatedImageResult(
                         originalImagePath = normalizedOriginal,
                         translatedImagePath = translatedPath,
                         ocrResult = ocr,
-                        translations = translations
+                        translations = translations,
+                        regions = regions
                     )
                 )
             } catch (cancelled: CancellationException) {
-                try {
-                    bitmap.recycle()
-                } catch (_: Exception) {
-                }
+                recycleQuietly(bitmap)
                 throw cancelled
             } catch (e: Exception) {
-                try {
-                    bitmap.recycle()
-                } catch (_: Exception) {
-                }
+                recycleQuietly(bitmap)
                 return Result.failure(e)
             }
         } catch (cancelled: CancellationException) {
@@ -100,36 +114,75 @@ class ImageTranslationRepositoryImpl(
         }
     }
 
+    private suspend fun translateParagraphs(
+        paragraphs: List<String>,
+        sourceLang: String,
+        targetLang: String
+    ): Result<List<String>> {
+        val batch = translationRepository.translateBatch(paragraphs, sourceLang, targetLang)
+        if (batch.isSuccess) {
+            return Result.success(batch.getOrThrow().map { it.translatedText })
+        }
+        val out = mutableListOf<String>()
+        for (p in paragraphs) {
+            val single = translationRepository.translate(p, sourceLang, targetLang).getOrElse {
+                return Result.failure(it)
+            }
+            out.add(single.translatedText)
+        }
+        return Result.success(out)
+    }
+
     override suspend fun rerender(
         result: TranslatedImageResult,
         translations: List<String>
-    ): Result<TranslatedImageResult> = imageResult {
-        require(translations.size == result.ocrResult.textBlocks.size) {
-            "عدد الترجمات لا يطابق عدد الكتل"
+    ): Result<TranslatedImageResult> {
+        val base = currentRegions(result)
+        if (translations.size != base.size) {
+            return Result.failure(IllegalStateException("عدد الترجمات لا يطابق عدد المناطق"))
         }
-        val target = result.translations.firstOrNull()?.targetLanguage ?: "ar"
-        val base = imageFiles.decode(result.originalImagePath)
+        val updated = base.mapIndexed { i, r -> r.copy(translatedText = translations[i]) }
+        return updateRegions(result, updated)
+    }
+
+    override suspend fun updateRegions(
+        result: TranslatedImageResult,
+        regions: List<TranslatedRegion>
+    ): Result<TranslatedImageResult> = imageResult {
+        val base = currentRegions(result)
+        require(regions.size == base.size) { "عدد المناطق لا يطابق المناطق المكتشفة" }
+        val target = regions.firstOrNull()?.targetLanguage
+            ?: result.translations.firstOrNull()?.targetLanguage ?: "ar"
+        val bitmap = imageFiles.decode(result.originalImagePath)
         try {
             val out = withContext(Dispatchers.Default) {
-                renderer.render(base, result.ocrResult, translations, target)
+                renderer.renderRegions(bitmap, regions, target)
             }
-            base.recycle()
+            recycleQuietly(bitmap)
             val newPath = imageFiles.write(out, "translated_edit")
-            out.recycle()
-            val newTranslations = result.ocrResult.textBlocks.mapIndexed { i, block ->
-                TranslationResult(
-                    originalText = block.text,
-                    translatedText = translations[i],
-                    sourceLanguage = result.translations.getOrNull(i)?.sourceLanguage ?: "en",
-                    targetLanguage = target
-                )
+            recycleQuietly(out)
+            val translations = regions.map {
+                TranslationResult(it.originalText, it.translatedText, it.sourceLanguage, it.targetLanguage)
             }
-            result.copy(translatedImagePath = newPath, translations = newTranslations)
+            result.copy(translatedImagePath = newPath, translations = translations, regions = regions)
         } finally {
-            try {
-                if (!base.isRecycled) base.recycle()
-            } catch (_: Exception) {
-            }
+            recycleQuietly(bitmap)
+        }
+    }
+
+    private fun currentRegions(result: TranslatedImageResult): List<TranslatedRegion> {
+        if (result.regions.isNotEmpty()) return result.regions
+        return result.ocrResult.textBlocks.mapIndexed { index, block ->
+            val t = result.translations.getOrNull(index)
+            TranslatedRegion(
+                index = index,
+                originalText = block.text,
+                translatedText = t?.translatedText ?: block.text,
+                sourceLanguage = t?.sourceLanguage ?: "en",
+                targetLanguage = t?.targetLanguage ?: "ar",
+                boundingBox = block.boundingBox,
+                cornerPoints = block.cornerPoints
+            )
         }
     }
 
@@ -198,4 +251,11 @@ class ImageTranslationRepositoryImpl(
     }
 
     fun decodeForPreview(): suspend (String) -> Bitmap = { imageFiles.decode(it) }
+
+    private fun recycleQuietly(bitmap: Bitmap) {
+        try {
+            if (!bitmap.isRecycled) bitmap.recycle()
+        } catch (_: Exception) {
+        }
+    }
 }

@@ -52,8 +52,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideTranslationRepository(): TranslationRepository {
-        return TranslationRepositoryImpl()
+    fun provideTranslationRepository(
+        @ApplicationContext context: Context,
+        settings: SettingsRepository
+    ): TranslationRepository {
+        return TranslationRepositoryImpl(context, settings)
     }
 
     @Provides

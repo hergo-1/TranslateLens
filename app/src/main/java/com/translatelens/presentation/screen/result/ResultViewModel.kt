@@ -8,9 +8,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.translatelens.data.entity.TranslationHistory
 import com.translatelens.data.model.TranslatedImageResult
+import com.translatelens.data.model.TranslatedRegion
 import com.translatelens.domain.repository.HistoryRepository
 import com.translatelens.domain.repository.ImageTranslationRepository
 import com.translatelens.domain.repository.SettingsRepository
+import com.translatelens.domain.repository.TranslationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -28,7 +30,10 @@ data class ResultUiState(
     val error: String? = null,
     val showOriginal: Boolean = false,
     val message: String? = null,
-    val editedTranslations: List<String>? = null
+    val sourceLang: String = "en",
+    val targetLang: String = "ar",
+    val editingRegions: List<TranslatedRegion>? = null,
+    val retranslatingIndex: Int? = null
 )
 
 @HiltViewModel
@@ -37,7 +42,8 @@ class ResultViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val imageRepo: ImageTranslationRepository,
     private val historyRepo: HistoryRepository,
-    private val settingsRepo: SettingsRepository
+    private val settingsRepo: SettingsRepository,
+    private val translationRepo: TranslationRepository
 ) : ViewModel() {
     private val imagePath: String = savedStateHandle.get<String>("imagePath") ?: ""
 
@@ -58,10 +64,16 @@ class ResultViewModel @Inject constructor(
                 val src = settingsRepo.sourceLanguage.first()
                 val dst = settingsRepo.targetLanguage.first()
                 val saveH = settingsRepo.saveHistory.first()
+                _ui.value = _ui.value.copy(sourceLang = src, targetLang = dst)
                 val res = imageRepo.translateImage(imagePath, src, dst) { p ->
                     _ui.value = _ui.value.copy(progress = p)
                 }.getOrElse { e ->
-                    _ui.value = ResultUiState(isLoading = false, error = e.message ?: "فشل الترجمة")
+                    _ui.value = ResultUiState(
+                        isLoading = false,
+                        error = e.message ?: "فشل الترجمة",
+                        sourceLang = src,
+                        targetLang = dst
+                    )
                     return@launch
                 }
                 if (saveH) {
@@ -76,10 +88,16 @@ class ResultViewModel @Inject constructor(
                         )
                     )
                 }
-                _ui.value = ResultUiState(isLoading = false, progress = 1f, result = res)
+                _ui.value = ResultUiState(
+                    isLoading = false,
+                    progress = 1f,
+                    result = res,
+                    sourceLang = src,
+                    targetLang = dst
+                )
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                _ui.value = ResultUiState(isLoading = false, error = e.message ?: "فشل الترجمة")
+                _ui.value = _ui.value.copy(isLoading = false, error = e.message ?: "فشل الترجمة")
             }
         }
     }
@@ -96,9 +114,8 @@ class ResultViewModel @Inject constructor(
 
     fun copyTranslated() {
         val r = _ui.value.result ?: return
-        val edited = _ui.value.editedTranslations
-        val text = if (edited != null) edited.joinToString("\n")
-        else r.translations.joinToString("\n") { it.translatedText }
+        val text = currentRegions().joinToString("\n") { it.translatedText }
+            .ifEmpty { r.translations.joinToString("\n") { it.translatedText } }
         copyToClipboard("translated", text)
         _ui.value = _ui.value.copy(message = "تم نسخ الترجمة")
     }
@@ -129,26 +146,95 @@ class ResultViewModel @Inject constructor(
         }
     }
 
-    fun applyEdits(newTranslations: List<String>) {
+    fun openEditor() {
         val r = _ui.value.result ?: return
-        if (newTranslations.size != r.translations.size) return
+        if (r.regions.isEmpty()) {
+            _ui.value = _ui.value.copy(message = "لا توجد مناطق نصية قابلة للتعديل")
+            return
+        }
+        _ui.value = _ui.value.copy(editingRegions = r.regions)
+    }
+
+    fun closeEditor() {
+        _ui.value = _ui.value.copy(editingRegions = null, retranslatingIndex = null)
+    }
+
+    fun editRegionText(index: Int, text: String) {
+        _ui.value = _ui.value.copy(
+            editingRegions = _ui.value.editingRegions?.map {
+                if (it.index == index) it.copy(translatedText = text) else it
+            }
+        )
+    }
+
+    fun editRegionFontScale(index: Int, scale: Float) {
+        _ui.value = _ui.value.copy(
+            editingRegions = _ui.value.editingRegions?.map {
+                if (it.index == index) it.copy(fontScale = scale.coerceIn(0.6f, 1.6f)) else it
+            }
+        )
+    }
+
+    fun editRegionAlignment(index: Int, alignment: Int) {
+        _ui.value = _ui.value.copy(
+            editingRegions = _ui.value.editingRegions?.map {
+                if (it.index == index) it.copy(alignment = alignment) else it
+            }
+        )
+    }
+
+    fun retranslateRegion(index: Int) {
+        val region = _ui.value.editingRegions?.firstOrNull { it.index == index } ?: return
+        viewModelScope.launch {
+            _ui.value = _ui.value.copy(retranslatingIndex = index)
+            try {
+                val res = translationRepo.translate(
+                    region.originalText,
+                    region.sourceLanguage,
+                    region.targetLanguage
+                )
+                res.onSuccess {
+                    editRegionText(index, it.translatedText)
+                }.onFailure { e ->
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    _ui.value = _ui.value.copy(message = "فشل إعادة الترجمة: ${e.message}")
+                }
+            } finally {
+                _ui.value = _ui.value.copy(retranslatingIndex = null)
+            }
+        }
+    }
+
+    fun saveEdits() {
+        val r = _ui.value.result ?: return
+        val edited = _ui.value.editingRegions ?: return
         viewModelScope.launch {
             _ui.value = _ui.value.copy(isLoading = true)
             try {
-                val updated = imageRepo.rerender(r, newTranslations).getOrElse { e ->
-                        _ui.value = _ui.value.copy(isLoading = false, message = "فشل إعادة الرسم: ${e.message}")
-                        return@launch
-                    }
-                _ui.value = _ui.value.copy(isLoading = false, result = updated, editedTranslations = newTranslations, message = "تم تطبيق التعديل")
+                val updated = imageRepo.updateRegions(r, edited).getOrElse { e ->
+                    _ui.value = _ui.value.copy(isLoading = false, message = "فشل الحفظ: ${e.message}")
+                    return@launch
+                }
+                _ui.value = _ui.value.copy(
+                    isLoading = false,
+                    result = updated,
+                    editingRegions = null,
+                    message = "تم حفظ التعديلات وتحديث الصورة"
+                )
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                _ui.value = _ui.value.copy(isLoading = false, message = "فشل التعديل: ${e.message}")
+                _ui.value = _ui.value.copy(isLoading = false, message = "فشل الحفظ: ${e.message}")
             }
         }
     }
 
     fun consumeMessage() {
         _ui.value = _ui.value.copy(message = null)
+    }
+
+    private fun currentRegions(): List<TranslatedRegion> {
+        val r = _ui.value.result ?: return emptyList()
+        return if (r.regions.isNotEmpty()) r.regions else emptyList()
     }
 
     private fun copyToClipboard(label: String, text: String) {

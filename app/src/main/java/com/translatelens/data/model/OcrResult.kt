@@ -10,7 +10,8 @@ data class TextBlock(
     val boundingBox: RectF,
     val cornerPoints: List<PointF>,
     val language: String? = null,
-    val confidence: Float = 1.0f
+    val confidence: Float = 1.0f,
+    val blockIndex: Int = 0
 ) {
     val centerX: Float get() = boundingBox.centerX()
     val centerY: Float get() = boundingBox.centerY()
@@ -49,9 +50,28 @@ data class TranslationResult(
     val targetLanguage: String
 )
 
+data class TranslatedRegion(
+    val index: Int,
+    val originalText: String,
+    val translatedText: String,
+    val sourceLanguage: String,
+    val targetLanguage: String,
+    val boundingBox: RectF,
+    val cornerPoints: List<PointF>,
+    val fontScale: Float = 1f,
+    val alignment: Int = ALIGN_CENTER
+) {
+    companion object {
+        const val ALIGN_START = 0
+        const val ALIGN_CENTER = 1
+        const val ALIGN_END = 2
+    }
+}
+
 data class TranslatedImageResult(
     val originalImagePath: String,
     val translatedImagePath: String,
     val ocrResult: OcrResult,
-    val translations: List<TranslationResult>
+    val translations: List<TranslationResult>,
+    val regions: List<TranslatedRegion> = emptyList()
 )

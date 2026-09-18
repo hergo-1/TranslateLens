@@ -18,7 +18,8 @@ interface TranslationRepository {
     ): Result<List<TranslationResult>>
 
     val availableOfflineLanguages: Flow<List<OfflineLanguage>>
-    suspend fun downloadLanguageModel(language: OfflineLanguage): Result<Unit>
-    suspend fun deleteLanguageModel(languageCode: String): Result<Unit>
+    suspend fun downloadLanguageModel(language: OfflineLanguage, targetLang: String): Result<Unit>
+    suspend fun deleteLanguageModel(languageCode: String, targetLang: String): Result<Unit>
+    suspend fun isModelDownloaded(sourceLang: String, targetLang: String): Boolean
     suspend fun isLanguageDownloaded(languageCode: String): Boolean
 }

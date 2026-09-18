@@ -4,16 +4,25 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -21,11 +30,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.translatelens.presentation.component.AppTopBar
+import com.translatelens.presentation.util.formatDate
 import com.translatelens.presentation.util.rememberImageBitmap
 
 @Composable
@@ -35,45 +49,117 @@ fun HistoryScreen(
 ) {
     val items = viewModel.paging.collectAsLazyPagingItems()
     var confirmClear by remember { mutableStateOf(false) }
+    var favoritesOnly by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = onBack) { Text("رجوع") }
-            TextButton(onClick = { confirmClear = true }) { Text("مسح السجل") }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+    ) {
+        AppTopBar(
+            title = "السجل",
+            onBack = onBack,
+            actions = {
+                TextButton(onClick = { confirmClear = true }) { Text("مسح") }
+            }
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = !favoritesOnly,
+                onClick = {
+                    favoritesOnly = false
+                    viewModel.showFavoritesOnly(false)
+                },
+                label = { Text("الكل") }
+            )
+            FilterChip(
+                selected = favoritesOnly,
+                onClick = {
+                    favoritesOnly = true
+                    viewModel.showFavoritesOnly(true)
+                },
+                label = { Text("المفضلة") }
+            )
         }
-        Text("السجل", style = MaterialTheme.typography.headlineSmall)
         if (items.itemCount == 0) {
-            Text("لا يوجد سجل ترجمة")
+            Text(
+                "لا يوجد سجل ترجمة",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(24.dp)
+            )
         }
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             items(items.itemCount) { index ->
                 val h = items[index] ?: return@items
-                Card(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    )
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         val bmp = rememberImageBitmap(h.translatedImagePath)
                         if (bmp != null) {
-                            Image(bmp, null, Modifier.size(72.dp), contentScale = ContentScale.Crop)
+                            Image(
+                                bmp,
+                                null,
+                                Modifier
+                                    .size(64.dp)
+                                    .clip(MaterialTheme.shapes.medium),
+                                contentScale = ContentScale.Crop
+                            )
                         }
-                        Column(Modifier.weight(1f)) {
-                            Text(h.originalText.take(120), style = MaterialTheme.typography.bodySmall, maxLines = 2)
-                            Text(h.translatedText.take(120), style = MaterialTheme.typography.bodySmall, maxLines = 2)
-                            Text("${h.sourceLanguage} → ${h.targetLanguage}", style = MaterialTheme.typography.labelSmall)
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                h.originalText.take(80),
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                h.translatedText.take(80),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                "${h.sourceLanguage.uppercase()} ← ${h.targetLanguage.uppercase()}  •  ${formatDate(h.timestamp)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                        Column {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             IconButton(onClick = { viewModel.toggleFavorite(h) }) {
-                                Text(if (h.isFavorite) "★" else "☆")
+                                Icon(
+                                    if (h.isFavorite) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                                    contentDescription = "مفضلة",
+                                    tint = if (h.isFavorite) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                             IconButton(onClick = { viewModel.delete(h.id) }) {
-                                Text("✕")
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = "حذف",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
                 }
             }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { viewModel.showFavoritesOnly(true) }, modifier = Modifier.weight(1f)) { Text("المفضلة") }
-            OutlinedButton(onClick = { viewModel.showFavoritesOnly(false) }, modifier = Modifier.weight(1f)) { Text("الكل") }
         }
     }
 

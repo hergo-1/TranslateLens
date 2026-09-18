@@ -14,6 +14,7 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import com.translatelens.data.model.OcrResult
 import com.translatelens.data.model.TextBlock
+import com.translatelens.data.model.TranslatedRegion
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
@@ -155,12 +156,76 @@ class Renderer {
         Canvas(bitmap).drawPath(path, paint)
     }
 
+    fun renderRegions(
+        background: Bitmap,
+        regions: List<TranslatedRegion>,
+        targetLanguage: String
+    ): Bitmap {
+        require(!background.isRecycled) { "الصورة الأساسية غير صالحة" }
+        require(regions.isNotEmpty()) { "لم يتم العثور على نص في الصورة" }
+        val output = background.copy(Bitmap.Config.ARGB_8888, true)
+            ?: throw IllegalStateException("فشل نسخ الصورة")
+        try {
+            val canvas = Canvas(output)
+            val rtl = isRtl(targetLanguage)
+            for (region in regions) {
+                drawRegion(canvas, output, region, rtl)
+            }
+            return output
+        } catch (t: Throwable) {
+            try {
+                output.recycle()
+            } catch (_: Exception) {
+            }
+            throw t
+        }
+    }
+
+    private fun drawRegion(
+        canvas: Canvas,
+        output: Bitmap,
+        region: TranslatedRegion,
+        rtl: Boolean
+    ) {
+        val text = region.translatedText.trim()
+        if (text.isEmpty()) return
+        val corners = region.cornerPoints.take(4).ifEmpty {
+            val b = region.boundingBox
+            listOf(
+                PointF(b.left, b.top),
+                PointF(b.right, b.top),
+                PointF(b.right, b.bottom),
+                PointF(b.left, b.bottom)
+            )
+        }
+        if (corners.size < 4) return
+        val fill = sampleRingColor(output, regionBounds(corners))
+        fillPath(output, corners, fill)
+        drawFittedText(
+            canvas, corners, text, rtl, fill,
+            alignment = region.alignment,
+            fontScale = region.fontScale.coerceIn(0.6f, 1.6f)
+        )
+    }
+
     private fun drawFittedText(
         canvas: Canvas,
         corners: List<PointF>,
         text: String,
         rtl: Boolean,
         bg: Int
+    ) {
+        drawFittedText(canvas, corners, text, rtl, bg, TranslatedRegion.ALIGN_CENTER, 1f)
+    }
+
+    private fun drawFittedText(
+        canvas: Canvas,
+        corners: List<PointF>,
+        text: String,
+        rtl: Boolean,
+        bg: Int,
+        alignment: Int,
+        fontScale: Float
     ) {
         val topW = hypot(corners[1].x - corners[0].x, corners[1].y - corners[0].y)
         val bottomW = hypot(corners[2].x - corners[3].x, corners[2].y - corners[3].y)
@@ -173,10 +238,10 @@ class Renderer {
         val fg = contrastingColor(bg)
         var bestSize = 10f
         var lo = 8f
-        var hi = min(regionH * 0.9f, 220f).coerceAtLeast(9f)
+        var hi = (min(regionH * 0.9f, 220f).coerceAtLeast(9f) * fontScale).coerceAtLeast(9f)
         repeat(12) {
             val mid = (lo + hi) / 2f
-            if (fits(text, mid, regionW, regionH, rtl)) {
+            if (fits(text, mid, regionW, regionH, rtl, alignment)) {
                 bestSize = mid
                 lo = mid
             } else {
@@ -185,7 +250,7 @@ class Renderer {
             if (hi - lo < 0.75f) return@repeat
         }
         val paint = buildPaint(bestSize, fg)
-        val layout = buildLayout(text, paint, regionW.toInt().coerceAtLeast(8), rtl)
+        val layout = buildLayout(text, paint, regionW.toInt().coerceAtLeast(8), rtl, alignment)
 
         val src = floatArrayOf(0f, 0f, regionW, 0f, regionW, regionH, 0f, regionH)
         val dst = floatArrayOf(
@@ -218,8 +283,18 @@ class Renderer {
         }
     }
 
-    private fun buildLayout(text: String, paint: TextPaint, width: Int, rtl: Boolean): StaticLayout {
-        val align = Layout.Alignment.ALIGN_CENTER
+    private fun buildLayout(
+        text: String,
+        paint: TextPaint,
+        width: Int,
+        rtl: Boolean,
+        alignment: Int = TranslatedRegion.ALIGN_CENTER
+    ): StaticLayout {
+        val align = when (alignment) {
+            TranslatedRegion.ALIGN_START -> Layout.Alignment.ALIGN_NORMAL
+            TranslatedRegion.ALIGN_END -> Layout.Alignment.ALIGN_OPPOSITE
+            else -> Layout.Alignment.ALIGN_CENTER
+        }
         return if (Build.VERSION.SDK_INT >= 23) {
             StaticLayout.Builder.obtain(text, 0, text.length, paint, width)
                 .setAlignment(align)
@@ -232,10 +307,17 @@ class Renderer {
         }
     }
 
-    private fun fits(text: String, size: Float, w: Float, h: Float, rtl: Boolean): Boolean {
+    private fun fits(
+        text: String,
+        size: Float,
+        w: Float,
+        h: Float,
+        rtl: Boolean,
+        alignment: Int = TranslatedRegion.ALIGN_CENTER
+    ): Boolean {
         if (size < 6f) return true
         val paint = buildPaint(size, Color.BLACK)
-        val layout = buildLayout(text, paint, w.toInt().coerceAtLeast(8), rtl)
+        val layout = buildLayout(text, paint, w.toInt().coerceAtLeast(8), rtl, alignment)
         if (layout.height > h) return false
         for (i in 0 until layout.lineCount) {
             if (layout.getLineWidth(i) > w) return false

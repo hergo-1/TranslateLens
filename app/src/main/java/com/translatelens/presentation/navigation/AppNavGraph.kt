@@ -60,7 +60,10 @@ fun AppNavGraph(
                 HistoryScreen(onBack = { nav.popBackStack() })
             }
             composable(Routes.SETTINGS) {
-                SettingsScreen(onBack = { nav.popBackStack() })
+                SettingsScreen(
+                    onBack = { nav.popBackStack() },
+                    onOpenOffline = { nav.navigate(Routes.OFFLINE) }
+                )
             }
             composable(
                 route = Routes.RESULT,

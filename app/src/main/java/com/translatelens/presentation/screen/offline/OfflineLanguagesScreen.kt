@@ -3,26 +3,45 @@ package com.translatelens.presentation.screen.offline
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.translatelens.presentation.util.languageDisplayName
+import com.translatelens.presentation.component.AppTopBar
+import com.translatelens.presentation.util.directionLabel
+import com.translatelens.presentation.util.formatBytes
+import com.translatelens.presentation.util.pairLabel
 
 @Composable
 fun OfflineLanguagesScreen(
@@ -30,34 +49,119 @@ fun OfflineLanguagesScreen(
     viewModel: OfflineViewModel = hiltViewModel()
 ) {
     val state by viewModel.ui.collectAsState()
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        TextButton(onClick = onBack) { Text("رجوع") }
-        Text("اللغات بدون إنترنت", style = MaterialTheme.typography.headlineSmall)
-        Text("English → العربية يعمل بدون إنترنت بعد تنزيل النموذج. النماذج تُنزّل عند الطلب.", style = MaterialTheme.typography.bodySmall)
-        if (state.error != null) Text(state.error!!, color = MaterialTheme.colorScheme.error)
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(state.languages, key = { it.code }) { lang ->
-                Card(Modifier.fillMaxWidth()) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+    val snack = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.error) {
+        state.error?.let {
+            snack.showSnackbar(it)
+            viewModel.clearError()
+        }
+    }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+    ) {
+        AppTopBar(
+            title = "اللغات بدون إنترنت",
+            onBack = onBack,
+            actions = {
+                IconButton(onClick = { viewModel.refresh() }) {
+                    Icon(Icons.Filled.Refresh, contentDescription = "تحديث الحالة")
+                }
+            }
+        )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            item {
+                Text(
+                    "نماذج الترجمة تُنزّل عند الطلب فقط ولا تدخل في حجم التطبيق. التنزيل يحتاج إنترنت لمرة واحدة.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            items(state.rows, key = { it.language.code }) { row ->
+                val lang = row.language
+                val downloading = state.downloading == lang.code
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    )
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Column {
-                            Text("${languageDisplayName(lang.code)} (${lang.code})")
-                            Text(lang.displaySize, style = MaterialTheme.typography.labelSmall)
-                            if (lang.isDownloaded) Text("تم التنزيل", style = MaterialTheme.typography.labelSmall)
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                pairLabel(lang.code, row.targetLang),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            if (row.installed) {
+                                Icon(
+                                    Icons.Filled.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
-                        if (state.downloading == lang.code) {
-                            CircularProgressIndicator()
-                        } else if (lang.isDownloaded && lang.code != "en") {
-                            OutlinedButton(onClick = { viewModel.delete(lang.code) }) { Text("حذف") }
-                        } else if (!lang.isDownloaded) {
-                            Button(onClick = { viewModel.download(lang) }) { Text("تنزيل") }
+                        Text(
+                            "${directionLabel(lang.code)} ← ${directionLabel(row.targetLang)}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (downloading) {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            Text("جارٍ التنزيل…", style = MaterialTheme.typography.bodySmall)
+                        } else if (row.installed) {
+                            Text(
+                                "مثبت على الجهاز" + (row.installedBytes?.let { " — ${formatBytes(it)}" } ?: ""),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Text(
+                                "غير مثبت — الحجم: جارٍ حساب الحجم عند بدء التنزيل",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (downloading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 3.dp
+                                )
+                            } else if (row.installed) {
+                                OutlinedButton(onClick = { viewModel.delete(lang.code) }) {
+                                    Icon(Icons.Filled.Delete, null, Modifier.size(18.dp))
+                                    Spacer(Modifier.size(6.dp))
+                                    Text("حذف النموذج")
+                                }
+                            } else {
+                                Button(onClick = { viewModel.download(lang) }) {
+                                    Icon(Icons.Filled.Download, null, Modifier.size(18.dp))
+                                    Spacer(Modifier.size(6.dp))
+                                    Text("تنزيل")
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+        androidx.compose.material3.SnackbarHost(hostState = snack)
     }
 }

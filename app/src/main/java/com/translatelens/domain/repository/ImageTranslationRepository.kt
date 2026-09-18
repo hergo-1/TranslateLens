@@ -1,6 +1,7 @@
 package com.translatelens.domain.repository
 
 import com.translatelens.data.model.TranslatedImageResult
+import com.translatelens.data.model.TranslatedRegion
 
 interface ImageTranslationRepository {
     suspend fun translateImage(
@@ -13,6 +14,11 @@ interface ImageTranslationRepository {
     suspend fun rerender(
         result: TranslatedImageResult,
         translations: List<String>
+    ): Result<TranslatedImageResult>
+
+    suspend fun updateRegions(
+        result: TranslatedImageResult,
+        regions: List<TranslatedRegion>
     ): Result<TranslatedImageResult>
 
     suspend fun saveTranslatedImage(
