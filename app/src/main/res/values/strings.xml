@@ -1,0 +1,95 @@
+<resources>
+    <string name="app_name">TranslateLens</string>
+
+    <!-- Home Screen -->
+    <string name="translate_with_camera">ترجمة بالكاميرا</string>
+    <string name="translate_image">ترجمة صورة</string>
+    <string name="translate_text">ترجمة نص</string>
+    <string name="offline_languages">اللغات بدون إنترنت</string>
+    <string name="history">السجل</string>
+    <string name="settings">الإعدادات</string>
+
+    <!-- Camera Screen -->
+    <string name="tap_to_focus">اضغط للتركيز</string>
+    <string name="capture">التقاط</string>
+    <string name="switch_camera">تبديل الكاميرا</string>
+    <string name="flash_on">تشغيل الفلاش</string>
+    <string name="flash_off">إيقاف الفلاش</string>
+    <string name="processing">جاري المعالجة…</string>
+    <string name="no_text_found">لم يتم العثور على نص</string>
+    <string name="point_camera_at_text">وجّه الكاميرا نحو النص</string>
+
+    <!-- Gallery Screen -->
+    <string name="select_image">اختر صورة</string>
+    <string name="gallery">المعرض</string>
+
+    <!-- Result Screen -->
+    <string name="original">الأصلية</string>
+    <string name="translated">المترجمة</string>
+    <string name="save">حفظ</string>
+    <string name="share">مشاركة</string>
+    <string name="edit_translation">تعديل الترجمة</string>
+    <string name="copy_text">نسخ النص</string>
+    <string name="retry">إعادة المحاولة</string>
+    <string name="translation_saved">تم حفظ الترجمة</string>
+    <string name="image_saved_to_gallery">تم حفظ الصورة في المعرض</string>
+    <string name="translation_copied">تم نسخ الترجمة</string>
+    <string name="original_text_copied">تم نسخ النص الأصلي</string>
+
+    <!-- Edit Translation Dialog -->
+    <string name="edit_translation_title">تعديل الترجمة</string>
+    <string name="original_text">النص الأصلي</string>
+    <string name="translated_text">النص المترجم</string>
+    <string name="apply">تطبيق</string>
+    <string name="cancel">إلغاء</string>
+
+    <!-- Offline Languages -->
+    <string name="download">تنزيل</string>
+    <string name="downloading">جاري التنزيل…</string>
+    <string name="downloaded">تم التنزيل</string>
+    <string name="delete">حذف</string>
+    <string name="model_size">الحجم: %s</string>
+    <string name="english_arabic">English → Arabic</string>
+    <string name="arabic_english">Arabic → English</string>
+    <string name="download_models_first">يرجى تنزيل نماذج الترجمة أولاً</string>
+    <string name="download_failed">فشل التنزيل</string>
+    <string name="model_deleted">تم حذف النموذج</string>
+
+    <!-- History -->
+    <string name="no_history">لا يوجد سجل ترجمة</string>
+    <string name="clear_history">مسح السجل</string>
+    <string name="confirm_clear_history">هل أنت متأكد من مسح كل السجل؟</string>
+
+    <!-- Settings -->
+    <string name="theme">السمة</string>
+    <string name="light_mode">فاتح</string>
+    <string name="dark_mode">داكن</string>
+    <string name="system_default">افتراضي النظام</string>
+    <string name="language">اللغة</string>
+    <string name="auto_detect_source">كشف اللغة تلقائياً</string>
+    <string name="save_history">حفظ السجل</string>
+    <string name="image_quality">جودة الصورة المحفوظة</string>
+    <string name="high">عالية</string>
+    <string name="medium">متوسطة</string>
+    <string name="low">منخفضة</string>
+    <string name="about">حول التطبيق</string>
+    <string name="version">الإصدار %s</string>
+    <string name="privacy_policy">سياسة الخصوصية</string>
+    <string name="open_source_licenses">تراخيص المصادر المفتوحة</string>
+
+    <!-- Errors -->
+    <string name="error_ocr_failed">فشل التعرف على النص</string>
+    <string name="error_translation_failed">فشل الترجمة</string>
+    <string name="error_image_load_failed">فشل تحميل الصورة</string>
+    <string name="error_save_failed">فشل الحفظ</string>
+    <string name="error_permission_denied">تم رفض الإذن</string>
+    <string name="error_no_internet">لا يوجد اتصال بالإنترنت</string>
+    <string name="error_model_not_downloaded">النموذج غير محمل</string>
+    <string name="try_again">حاول مرة أخرى</string>
+
+    <!-- Accessibility -->
+    <string name="camera_preview">معاينة الكاميرا</string>
+    <string name="translated_image">الصورة المترجمة</string>
+    <string name="original_image">الصورة الأصلية</string>
+    <string name="close">إغلاق</string>
+</resources>
