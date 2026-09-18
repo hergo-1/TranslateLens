@@ -32,6 +32,8 @@ import com.translatelens.presentation.component.AppTopBar
 import com.translatelens.presentation.component.ThemeToggle
 import com.translatelens.presentation.component.GlassCard
 import com.translatelens.presentation.component.GradientButton
+import com.translatelens.presentation.component.bodyColor
+import com.translatelens.presentation.component.titleColor
 import com.translatelens.presentation.util.languageDisplayName
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,7 +68,8 @@ fun TextTranslateScreen(
                             onValueChange = { viewModel.setInput(it) },
                             label = { Text("اكتب النص هنا") },
                             modifier = Modifier.fillMaxWidth(),
-                            minLines = 5
+                            minLines = 5,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = bodyColor())
                         )
                     }
                 }
@@ -82,8 +85,16 @@ fun TextTranslateScreen(
                 if (state.output.isNotEmpty()) {
                     GlassCard {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("الترجمة", style = MaterialTheme.typography.titleMedium)
-                            Text(state.output, style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "الترجمة",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = titleColor()
+                            )
+                            Text(
+                                state.output,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = bodyColor()
+                            )
                             GradientButton(
                                 text = "نسخ الترجمة",
                                 onClick = { viewModel.copy() },

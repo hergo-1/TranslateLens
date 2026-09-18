@@ -38,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -72,9 +73,10 @@ fun AppTopBar(
     title: String,
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
-    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    contentColor: Color = Color.Unspecified,
     actions: @Composable () -> Unit = {}
 ) {
+    val tint = if (contentColor == Color.Unspecified) titleColor() else contentColor
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -87,7 +89,7 @@ fun AppTopBar(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "رجوع",
-                    tint = contentColor
+                    tint = tint
                 )
             }
         } else {
@@ -96,7 +98,7 @@ fun AppTopBar(
         Text(
             title,
             style = MaterialTheme.typography.titleLarge,
-            color = contentColor,
+            color = tint,
             modifier = Modifier.weight(1f)
         )
         actions()
@@ -122,38 +124,79 @@ fun LoadingOverlay(progress: Float?, message: String) {
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "${(progress * 100).toInt()}%",
-                    style = MaterialTheme.typography.labelLarge
+                    style = MaterialTheme.typography.labelLarge,
+                    color = bodyColor()
                 )
             } else {
                 CircularProgressIndicator()
             }
             Spacer(Modifier.height(12.dp))
-            Text(message, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = bodyColor(),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
 
 @Composable
-fun ErrorView(message: String, onRetry: (() -> Unit)? = null) {
+fun ErrorView(
+    message: String,
+    onRetry: (() -> Unit)? = null,
+    secondaryActionText: String? = null,
+    onSecondaryAction: (() -> Unit)? = null
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+        Text(
+            message,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium
+        )
         if (onRetry != null) {
             Spacer(Modifier.height(12.dp))
             Button(onClick = onRetry) {
                 Text("إعادة المحاولة")
             }
         }
+        if (secondaryActionText != null && onSecondaryAction != null) {
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = onSecondaryAction) {
+                Text(secondaryActionText)
+            }
+        }
     }
 }
 
 @Composable
-fun SectionTitle(title: String) {
-    Text(
+fun titleColor(): Color {
+    return if (isAppDark()) Color(0xFFFFFFFF) else Color(0xFF111827)
+}
+
+@Composable
+fun bodyColor(): Color {
+    return if (isAppDark()) Color(0xFFE5E7EB) else Color(0xFF374151)
+}
+
+@Composable
+fun secondaryColor(): Color {
+    return if (isAppDark()) Color(0xFF9E9BA8) else Color(0xFF6B7280)
+}
+
+@Composable
+fun inactiveTextColor(): Color {
+    return if (isAppDark()) Color(0xFFC4C2CE) else Color(0xFF4A4D5E)
+}
+
+@Composable
+fun SectionTitle(title: String) {    Text(
         title,
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
@@ -178,12 +221,14 @@ fun InnerTopBar(
         IconButton(onClick = onBack) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "رجوع"
+                contentDescription = "رجوع",
+                tint = titleColor()
             )
         }
         Text(
             title,
             style = MaterialTheme.typography.titleLarge,
+            color = titleColor(),
             modifier = Modifier.weight(1f)
         )
         action()

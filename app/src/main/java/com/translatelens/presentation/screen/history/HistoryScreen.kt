@@ -42,6 +42,7 @@ import com.translatelens.presentation.component.AppFilterChip
 import com.translatelens.presentation.component.GlassCard
 import com.translatelens.presentation.component.InnerTopBar
 import com.translatelens.presentation.component.ThemeToggle
+import com.translatelens.presentation.component.bodyColor
 import com.translatelens.presentation.util.formatDate
 import com.translatelens.presentation.util.rememberImageBitmap
 
@@ -137,6 +138,7 @@ fun HistoryScreen(
                                     Text(
                                         h.originalText.take(80),
                                         style = MaterialTheme.typography.bodySmall,
+                                        color = bodyColor(),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )

@@ -27,7 +27,9 @@ data class OfflineUiState(
     val rows: List<LanguageRow> = emptyList(),
     val targetLang: String = "ar",
     val downloading: String? = null,
-    val error: String? = null
+    val repairing: String? = null,
+    val error: String? = null,
+    val notice: String? = null
 )
 
 @HiltViewModel
@@ -81,13 +83,17 @@ class OfflineViewModel @Inject constructor(
 
     fun download(lang: OfflineLanguage) {
         val target = _ui.value.targetLang
-        if (_ui.value.downloading != null) return
+        if (_ui.value.downloading != null || _ui.value.repairing != null) return
         viewModelScope.launch {
-            _ui.value = _ui.value.copy(downloading = lang.code, error = null)
-            repo.downloadLanguageModel(lang, target).onFailure { e ->
-                if (e is kotlinx.coroutines.CancellationException) throw e
-                _ui.value = _ui.value.copy(error = e.message ?: "فشل التنزيل")
-            }
+            _ui.value = _ui.value.copy(downloading = lang.code, error = null, notice = null)
+            repo.downloadLanguageModel(lang, target)
+                .onSuccess {
+                    _ui.value = _ui.value.copy(notice = "تم تنزيل النموذج بنجاح")
+                }
+                .onFailure { e ->
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    _ui.value = _ui.value.copy(error = e.message ?: "فشل التنزيل")
+                }
             _ui.value = _ui.value.copy(downloading = null)
             refresh()
         }
@@ -95,16 +101,44 @@ class OfflineViewModel @Inject constructor(
 
     fun delete(code: String) {
         val target = _ui.value.targetLang
+        if (_ui.value.downloading != null || _ui.value.repairing != null) return
         viewModelScope.launch {
-            repo.deleteLanguageModel(code, target).onFailure { e ->
-                if (e is kotlinx.coroutines.CancellationException) throw e
-                _ui.value = _ui.value.copy(error = e.message ?: "فشل الحذف")
-            }
+            _ui.value = _ui.value.copy(error = null, notice = null)
+            repo.deleteLanguageModel(code, target)
+                .onSuccess {
+                    _ui.value = _ui.value.copy(notice = "تم حذف النموذج")
+                }
+                .onFailure { e ->
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    _ui.value = _ui.value.copy(error = e.message ?: "فشل الحذف")
+                }
+            refresh()
+        }
+    }
+
+    fun repair(code: String) {
+        val target = _ui.value.targetLang
+        if (_ui.value.downloading != null || _ui.value.repairing != null) return
+        viewModelScope.launch {
+            _ui.value = _ui.value.copy(repairing = code, error = null, notice = null)
+            repo.repairPair(code, target)
+                .onSuccess {
+                    _ui.value = _ui.value.copy(notice = "تم إصلاح النماذج بنجاح")
+                }
+                .onFailure { e ->
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    _ui.value = _ui.value.copy(error = e.message ?: "فشل الإصلاح")
+                }
+            _ui.value = _ui.value.copy(repairing = null)
             refresh()
         }
     }
 
     fun clearError() {
         _ui.value = _ui.value.copy(error = null)
+    }
+
+    fun consumeNotice() {
+        _ui.value = _ui.value.copy(notice = null)
     }
 }

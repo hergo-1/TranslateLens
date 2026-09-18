@@ -38,6 +38,7 @@ import com.translatelens.presentation.component.GlassCard
 import com.translatelens.presentation.component.GradientButton
 import com.translatelens.presentation.component.GradientTitle
 import com.translatelens.presentation.component.ThemeToggle
+import com.translatelens.presentation.component.bodyColor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -169,6 +170,7 @@ private fun SecondaryGrid(items: List<Pair<Pair<ImageVector, String>, () -> Unit
                             Text(
                                 label.second,
                                 style = MaterialTheme.typography.labelLarge,
+                                color = bodyColor(),
                                 textAlign = TextAlign.Center,
                                 maxLines = 2
                             )

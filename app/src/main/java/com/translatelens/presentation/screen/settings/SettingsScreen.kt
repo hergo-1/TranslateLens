@@ -31,6 +31,7 @@ import com.translatelens.presentation.component.GlassCard
 import com.translatelens.presentation.component.InnerTopBar
 import com.translatelens.presentation.component.SectionTitle
 import com.translatelens.presentation.component.ThemeToggle
+import com.translatelens.presentation.component.bodyColor
 import com.translatelens.presentation.util.formatBytes
 import com.translatelens.presentation.util.languageDisplayName
 
@@ -67,7 +68,7 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     SectionTitle("اللغات")
-                    Text("لغة المصدر", style = MaterialTheme.typography.bodyMedium)
+                    Text("لغة المصدر", style = MaterialTheme.typography.bodyMedium, color = bodyColor())
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("en", "fr", "de", "es", "ar").forEach { code ->
                             AppFilterChip(
@@ -77,7 +78,7 @@ fun SettingsScreen(
                             )
                         }
                     }
-                    Text("لغة الهدف", style = MaterialTheme.typography.bodyMedium)
+                    Text("لغة الهدف", style = MaterialTheme.typography.bodyMedium, color = bodyColor())
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("ar", "en").forEach { code ->
                             AppFilterChip(
@@ -102,7 +103,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("حفظ السجل", style = MaterialTheme.typography.bodyMedium)
+                        Text("حفظ السجل", style = MaterialTheme.typography.bodyMedium, color = bodyColor())
                         Switch(checked = saveH, onCheckedChange = { viewModel.setSaveHistory(it) })
                     }
                     DeleteButton(

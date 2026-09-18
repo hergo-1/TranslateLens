@@ -56,6 +56,32 @@ class ResultViewModel @Inject constructor(
         retry()
     }
 
+    fun isModelError(): Boolean {
+        val err = _ui.value.error ?: return false
+        return err.contains("نموذج") || err.contains("نماذج") ||
+            err.contains("model", ignoreCase = true)
+    }
+
+    fun repairAndRetry() {
+        val src = _ui.value.sourceLang.ifEmpty { "en" }
+        val dst = _ui.value.targetLang.ifEmpty { "ar" }
+        viewModelScope.launch {
+            _ui.value = _ui.value.copy(isLoading = true, progress = 0f, error = null)
+            val repaired = translationRepo.repairPair(src, dst)
+            if (repaired.isFailure) {
+                val e = repaired.exceptionOrNull()
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                _ui.value = _ui.value.copy(
+                    isLoading = false,
+                    message = e?.message ?: "فشل إصلاح النماذج"
+                )
+                return@launch
+            }
+            _ui.value = _ui.value.copy(message = "تم إصلاح النماذج، جارٍ إعادة الترجمة")
+            retry()
+        }
+    }
+
     fun retry() {
         job?.cancel()
         job = viewModelScope.launch {

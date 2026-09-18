@@ -62,6 +62,9 @@ import com.translatelens.data.model.TranslatedRegion
 import com.translatelens.presentation.component.AppBackground
 import com.translatelens.presentation.component.AppFilterChip
 import com.translatelens.presentation.component.AppTopBar
+import com.translatelens.presentation.component.bodyColor
+import com.translatelens.presentation.component.secondaryColor
+import com.translatelens.presentation.component.titleColor
 import com.translatelens.presentation.component.ErrorView
 import com.translatelens.presentation.component.ThemeToggle
 import com.translatelens.presentation.component.LoadingOverlay
@@ -98,15 +101,17 @@ fun ResultScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("من:", style = MaterialTheme.typography.labelLarge)
+                    Text("من:", style = MaterialTheme.typography.labelLarge, color = secondaryColor())
                     Text(
                         languageDisplayName(state.sourceLang),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = bodyColor()
                     )
-                    Text("إلى:", style = MaterialTheme.typography.labelLarge)
+                    Text("إلى:", style = MaterialTheme.typography.labelLarge, color = secondaryColor())
                     Text(
                         languageDisplayName(state.targetLang),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = bodyColor()
                     )
                 }
             }
@@ -163,7 +168,12 @@ fun ResultScreen(
         ) {
             when {
                 state.isLoading -> LoadingOverlay(state.progress, "جاري الترجمة…")
-                state.error != null -> ErrorView(state.error!!, onRetry = { viewModel.retry() })
+                state.error != null -> ErrorView(
+                    message = state.error!!,
+                    onRetry = { viewModel.retry() },
+                    secondaryActionText = if (viewModel.isModelError()) "إصلاح النماذج وإعادة المحاولة" else null,
+                    onSecondaryAction = { viewModel.repairAndRetry() }
+                )
                 state.result != null -> {
                     val r = state.result!!
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -180,19 +190,21 @@ fun ResultScreen(
                     }
                     val path = if (state.showOriginal) r.originalImagePath else r.translatedImagePath
                     ZoomableImage(path)
-                    Text("النص الأصلي:", style = MaterialTheme.typography.titleMedium)
-                    Text(r.ocrResult.fullText, style = MaterialTheme.typography.bodyMedium)
-                    Text("الترجمة:", style = MaterialTheme.typography.titleMedium)
+                    Text("النص الأصلي:", style = MaterialTheme.typography.titleMedium, color = titleColor())
+                    Text(r.ocrResult.fullText, style = MaterialTheme.typography.bodyMedium, color = bodyColor())
+                    Text("الترجمة:", style = MaterialTheme.typography.titleMedium, color = titleColor())
                     val regions = r.regions.ifEmpty { null }
                     if (regions != null) {
                         Text(
                             regions.joinToString("\n") { it.translatedText },
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = bodyColor()
                         )
                     } else {
                         Text(
                             r.translations.joinToString("\n") { it.translatedText },
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = bodyColor()
                         )
                     }
                     Spacer(Modifier.height(8.dp))
@@ -295,7 +307,11 @@ private fun EditRegionsSheet(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
             ) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("الأصل: ${region.originalText}", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "الأصل: ${region.originalText}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = secondaryColor()
+                    )
                     OutlinedTextField(
                         value = region.translatedText,
                         onValueChange = { onTextChange(region.index, it) },
@@ -321,7 +337,10 @@ private fun EditRegionsSheet(
                             Text("إعادة ترجمة")
                         }
                     }
-                    Text("حجم الخط: ${(region.fontScale * 100).toInt()}%")
+                    Text(
+                        "حجم الخط: ${(region.fontScale * 100).toInt()}%",
+                        color = bodyColor()
+                    )
                     Slider(
                         value = region.fontScale,
                         onValueChange = { onFontScale(region.index, it) },

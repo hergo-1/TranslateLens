@@ -108,19 +108,59 @@ class TranslationRepositoryImpl(
     }
 
     override suspend fun deleteLanguageModel(languageCode: String, targetLang: String): Result<Unit> = imageResult {
-        val existedBefore = isModelDownloaded(languageCode, targetLang)
-        if (!existedBefore) {
-            settings.clearModelSize(SettingsRepositoryImpl.pairKey(languageCode, targetLang))
-            refreshModels(targetLang)
-            throw IllegalStateException("النموذج غير مثبت أصلًا")
+        val sourceExisted = try {
+            mutex.withLock { checkDownloadedInternal(languageCode) }
+        } catch (_: Exception) {
+            false
         }
         mutex.withLock {
-            modelManager.deleteDownloadedModel(modelFor(languageCode)).awaitFinished()
+            try {
+                modelManager.deleteDownloadedModel(modelFor(languageCode)).awaitFinished()
+            } catch (e: Exception) {
+                if (sourceExisted && checkDownloadedInternal(languageCode)) throw e
+            }
         }
         settings.clearModelSize(SettingsRepositoryImpl.pairKey(languageCode, targetLang))
         refreshModels(targetLang)
-        if (isModelDownloaded(languageCode, targetLang)) {
+        val stillThere = try {
+            mutex.withLock { checkDownloadedInternal(languageCode) }
+        } catch (_: Exception) {
+            false
+        }
+        if (stillThere) {
             throw IllegalStateException("تعذر حذف النموذج. أغلق التطبيق وأعد المحاولة.")
+        }
+    }
+
+    override suspend fun repairPair(sourceLang: String, targetLang: String): Result<Unit> = imageResult {
+        mutex.withLock {
+            try {
+                modelManager.deleteDownloadedModel(modelFor(sourceLang)).awaitFinished()
+            } catch (_: Exception) {
+            }
+            if (!sameLanguage(sourceLang, targetLang)) {
+                try {
+                    modelManager.deleteDownloadedModel(modelFor(targetLang)).awaitFinished()
+                } catch (_: Exception) {
+                }
+            }
+            try {
+                modelManager.download(modelFor(sourceLang), anyNetwork).awaitFinished()
+            } catch (e: Exception) {
+                throw IllegalStateException("فشل تنزيل نموذج ${displayName(sourceLang)}. تحقق من الإنترنت والمساحة.")
+            }
+            if (!sameLanguage(sourceLang, targetLang)) {
+                try {
+                    modelManager.download(modelFor(targetLang), anyNetwork).awaitFinished()
+                } catch (e: Exception) {
+                    throw IllegalStateException("فشل تنزيل نموذج ${displayName(targetLang)}. تحقق من الإنترنت والمساحة.")
+                }
+            }
+        }
+        settings.clearModelSize(SettingsRepositoryImpl.pairKey(sourceLang, targetLang))
+        refreshModels(targetLang)
+        if (!isModelDownloaded(sourceLang, targetLang)) {
+            throw IllegalStateException("تعذر إصلاح النماذج. تحقق من الإنترنت والمساحة وأعد المحاولة.")
         }
     }
 
