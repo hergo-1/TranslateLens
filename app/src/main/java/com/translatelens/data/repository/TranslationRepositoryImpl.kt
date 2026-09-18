@@ -7,7 +7,7 @@ import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.TranslateRemoteModel
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
-import com.translatelens.data.image.awaitFinished
+import com.translatelens.data.image.awaitBounded
 import com.translatelens.data.image.imageResult
 import com.translatelens.data.model.OfflineLanguage
 import com.translatelens.data.model.OfflineLanguages
@@ -76,7 +76,7 @@ class TranslationRepositoryImpl(
                     if (text.isBlank()) {
                         TranslationResult(text, text, sourceLang, targetLang)
                     } else {
-                        val out = translator.translate(text).awaitFinished()
+                        val out = translator.translate(text).awaitBounded(TRANSLATE_TIMEOUT_MS, "انتهت مهلة الترجمة. أعد المحاولة.")
                         TranslationResult(text, out, sourceLang, targetLang)
                     }
                 }
@@ -92,9 +92,9 @@ class TranslationRepositoryImpl(
     override suspend fun downloadLanguageModel(language: OfflineLanguage, targetLang: String): Result<Unit> = imageResult {
         val before = measureModelsSize()
         mutex.withLock {
-            modelManager.download(modelFor(language.code), anyNetwork).awaitFinished()
+            modelManager.download(modelFor(language.code), anyNetwork).awaitBounded(DOWNLOAD_TIMEOUT_MS, "انتهت مهلة التنزيل. تحقق من الإنترنت وأعد المحاولة.")
             if (!sameLanguage(language.code, targetLang)) {
-                modelManager.download(modelFor(targetLang), anyNetwork).awaitFinished()
+                modelManager.download(modelFor(targetLang), anyNetwork).awaitBounded(DOWNLOAD_TIMEOUT_MS, "انتهت مهلة التنزيل. تحقق من الإنترنت وأعد المحاولة.")
             }
         }
         refreshModels(targetLang)
@@ -115,7 +115,7 @@ class TranslationRepositoryImpl(
         }
         mutex.withLock<Unit> {
             try {
-                modelManager.deleteDownloadedModel(modelFor(languageCode)).awaitFinished()
+                modelManager.deleteDownloadedModel(modelFor(languageCode)).awaitBounded(DELETE_TIMEOUT_MS, "انتهت مهلة الحذف. أعد المحاولة.")
             } catch (e: Exception) {
                 if (sourceExisted && checkDownloadedInternal(languageCode)) throw e
             }
@@ -135,23 +135,23 @@ class TranslationRepositoryImpl(
     override suspend fun repairPair(sourceLang: String, targetLang: String): Result<Unit> = imageResult {
         mutex.withLock {
             try {
-                modelManager.deleteDownloadedModel(modelFor(sourceLang)).awaitFinished()
+                modelManager.deleteDownloadedModel(modelFor(sourceLang)).awaitBounded(DELETE_TIMEOUT_MS, "انتهت مهلة الحذف. أعد المحاولة.")
             } catch (_: Exception) {
             }
             if (!sameLanguage(sourceLang, targetLang)) {
                 try {
-                    modelManager.deleteDownloadedModel(modelFor(targetLang)).awaitFinished()
+                    modelManager.deleteDownloadedModel(modelFor(targetLang)).awaitBounded(DELETE_TIMEOUT_MS, "انتهت مهلة الحذف. أعد المحاولة.")
                 } catch (_: Exception) {
                 }
             }
             try {
-                modelManager.download(modelFor(sourceLang), anyNetwork).awaitFinished()
+                modelManager.download(modelFor(sourceLang), anyNetwork).awaitBounded(DOWNLOAD_TIMEOUT_MS, "انتهت مهلة التنزيل. تحقق من الإنترنت وأعد المحاولة.")
             } catch (e: Exception) {
                 throw IllegalStateException("فشل تنزيل نموذج ${displayName(sourceLang)}. تحقق من الإنترنت والمساحة.")
             }
             if (!sameLanguage(sourceLang, targetLang)) {
                 try {
-                    modelManager.download(modelFor(targetLang), anyNetwork).awaitFinished()
+                    modelManager.download(modelFor(targetLang), anyNetwork).awaitBounded(DOWNLOAD_TIMEOUT_MS, "انتهت مهلة التنزيل. تحقق من الإنترنت وأعد المحاولة.")
                 } catch (e: Exception) {
                     throw IllegalStateException("فشل تنزيل نموذج ${displayName(targetLang)}. تحقق من الإنترنت والمساحة.")
                 }
@@ -193,7 +193,7 @@ class TranslationRepositoryImpl(
 
     private suspend fun checkDownloadedInternal(code: String): Boolean {
         return try {
-            modelManager.isModelDownloaded(modelFor(code)).awaitFinished()
+            modelManager.isModelDownloaded(modelFor(code)).awaitBounded(STATUS_TIMEOUT_MS, "تعذر فحص النماذج.")
         } catch (_: Exception) {
             false
         }
@@ -210,7 +210,7 @@ class TranslationRepositoryImpl(
     suspend fun refreshModels(targetLang: String = "ar") {
         try {
             val downloaded = mutex.withLock {
-                modelManager.getDownloadedModels(TranslateRemoteModel::class.java).awaitFinished()
+                modelManager.getDownloadedModels(TranslateRemoteModel::class.java).awaitBounded(REFRESH_TIMEOUT_MS, "تعذر فحص النماذج.")
             }
             val codes = downloaded.mapNotNull { model ->
                 runCatching { fromMlKit(model.language) }.getOrNull()
@@ -293,5 +293,10 @@ class TranslationRepositoryImpl(
 
     companion object {
         private const val MAX_SCAN_FILES = 20000
+        private const val STATUS_TIMEOUT_MS = 20_000L
+        private const val REFRESH_TIMEOUT_MS = 30_000L
+        private const val DELETE_TIMEOUT_MS = 60_000L
+        private const val DOWNLOAD_TIMEOUT_MS = 10 * 60_000L
+        private const val TRANSLATE_TIMEOUT_MS = 90_000L
     }
 }

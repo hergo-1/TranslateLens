@@ -12,7 +12,6 @@ data class OfflineLanguage(
 
     val displaySize: String
         get() = when {
-            code == "en" -> "مدمج"
             modelSizeBytes <= 0 -> "الحجم غير متاح"
             modelSizeBytes >= 1024 * 1024 -> "%.2f MB".format(modelSizeBytes / (1024.0 * 1024))
             modelSizeBytes >= 1024 -> "%.2f KB".format(modelSizeBytes / 1024.0)
@@ -22,7 +21,7 @@ data class OfflineLanguage(
 
 object OfflineLanguages {
     val AVAILABLE_LANGUAGES = listOf(
-        OfflineLanguage("en", "English", "English", 0L, isDownloaded = true),
+        OfflineLanguage("en", "English", "English", 0L, isDownloaded = false),
         OfflineLanguage("ar", "Arabic", "العربية", 0L),
         OfflineLanguage("fr", "French", "Français", 0L),
         OfflineLanguage("de", "German", "Deutsch", 0L),

@@ -7,8 +7,12 @@ import com.translatelens.data.repository.SettingsRepositoryImpl
 import com.translatelens.data.repository.TranslationRepositoryImpl
 import com.translatelens.domain.repository.SettingsRepository
 import com.translatelens.domain.repository.TranslationRepository
+import com.translatelens.presentation.util.languageDisplayName
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +30,8 @@ data class LanguageRow(
 data class OfflineUiState(
     val rows: List<LanguageRow> = emptyList(),
     val targetLang: String = "ar",
+    val checking: Boolean = true,
+    val targetReady: Boolean? = null,
     val downloading: String? = null,
     val repairing: String? = null,
     val error: String? = null,
@@ -41,6 +47,7 @@ class OfflineViewModel @Inject constructor(
     val ui: StateFlow<OfflineUiState> = _ui.asStateFlow()
 
     private var refreshJob: Job? = null
+    private var opJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -69,32 +76,59 @@ class OfflineViewModel @Inject constructor(
     fun refresh() {
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch {
-            val target = _ui.value.targetLang
-            (repo as? TranslationRepositoryImpl)?.refreshModels(target)
-            _ui.value.rows.forEach { row ->
-                val ok = repo.isModelDownloaded(row.language.code, target)
-                if (ok != row.installed) {
-                    (repo as? TranslationRepositoryImpl)?.refreshModels(target)
-                    return@launch
+            _ui.value = _ui.value.copy(checking = true)
+            try {
+                val target = _ui.value.targetLang
+                (repo as? TranslationRepositoryImpl)?.refreshModels(target)
+                val targetDeferred = async {
+                    try {
+                        repo.isModelDownloaded(target, target)
+                    } catch (_: Exception) {
+                        false
+                    }
                 }
+                val rowChecks = _ui.value.rows.map { row ->
+                    async {
+                        try {
+                            repo.isModelDownloaded(row.language.code, target)
+                        } catch (_: Exception) {
+                            false
+                        }
+                    }
+                }
+                _ui.value = _ui.value.copy(targetReady = targetDeferred.await())
+                val results = rowChecks.awaitAll()
+                val mismatch = results.zip(_ui.value.rows) { ok, row -> ok != row.installed }.any { it }
+                if (mismatch) {
+                    (repo as? TranslationRepositoryImpl)?.refreshModels(target)
+                }
+            } finally {
+                _ui.value = _ui.value.copy(checking = false)
             }
         }
     }
 
+    fun targetDisplayName(): String = languageDisplayName(_ui.value.targetLang)
+
     fun download(lang: OfflineLanguage) {
         val target = _ui.value.targetLang
         if (_ui.value.downloading != null || _ui.value.repairing != null) return
-        viewModelScope.launch {
+        opJob?.cancel()
+        opJob = viewModelScope.launch {
             _ui.value = _ui.value.copy(downloading = lang.code, error = null, notice = null)
-            repo.downloadLanguageModel(lang, target)
-                .onSuccess {
-                    _ui.value = _ui.value.copy(notice = "تم تنزيل النموذج بنجاح")
-                }
-                .onFailure { e ->
-                    if (e is kotlinx.coroutines.CancellationException) throw e
-                    _ui.value = _ui.value.copy(error = e.message ?: "فشل التنزيل")
-                }
-            _ui.value = _ui.value.copy(downloading = null)
+            try {
+                repo.downloadLanguageModel(lang, target)
+                    .onSuccess {
+                        _ui.value = _ui.value.copy(notice = "تم تنزيل النموذج بنجاح")
+                    }
+                    .onFailure { e ->
+                        if (e is CancellationException) throw e
+                        _ui.value = _ui.value.copy(error = e.message ?: "فشل التنزيل")
+                    }
+            } finally {
+                _ui.value = _ui.value.copy(downloading = null)
+                opJob = null
+            }
             refresh()
         }
     }
@@ -102,16 +136,21 @@ class OfflineViewModel @Inject constructor(
     fun delete(code: String) {
         val target = _ui.value.targetLang
         if (_ui.value.downloading != null || _ui.value.repairing != null) return
-        viewModelScope.launch {
+        opJob?.cancel()
+        opJob = viewModelScope.launch {
             _ui.value = _ui.value.copy(error = null, notice = null)
-            repo.deleteLanguageModel(code, target)
-                .onSuccess {
-                    _ui.value = _ui.value.copy(notice = "تم حذف النموذج")
-                }
-                .onFailure { e ->
-                    if (e is kotlinx.coroutines.CancellationException) throw e
-                    _ui.value = _ui.value.copy(error = e.message ?: "فشل الحذف")
-                }
+            try {
+                repo.deleteLanguageModel(code, target)
+                    .onSuccess {
+                        _ui.value = _ui.value.copy(notice = "تم حذف النموذج")
+                    }
+                    .onFailure { e ->
+                        if (e is CancellationException) throw e
+                        _ui.value = _ui.value.copy(error = e.message ?: "فشل الحذف")
+                    }
+            } finally {
+                opJob = null
+            }
             refresh()
         }
     }
@@ -119,19 +158,29 @@ class OfflineViewModel @Inject constructor(
     fun repair(code: String) {
         val target = _ui.value.targetLang
         if (_ui.value.downloading != null || _ui.value.repairing != null) return
-        viewModelScope.launch {
+        opJob?.cancel()
+        opJob = viewModelScope.launch {
             _ui.value = _ui.value.copy(repairing = code, error = null, notice = null)
-            repo.repairPair(code, target)
-                .onSuccess {
-                    _ui.value = _ui.value.copy(notice = "تم إصلاح النماذج بنجاح")
-                }
-                .onFailure { e ->
-                    if (e is kotlinx.coroutines.CancellationException) throw e
-                    _ui.value = _ui.value.copy(error = e.message ?: "فشل الإصلاح")
-                }
-            _ui.value = _ui.value.copy(repairing = null)
+            try {
+                repo.repairPair(code, target)
+                    .onSuccess {
+                        _ui.value = _ui.value.copy(notice = "تم إصلاح النماذج بنجاح")
+                    }
+                    .onFailure { e ->
+                        if (e is CancellationException) throw e
+                        _ui.value = _ui.value.copy(error = e.message ?: "فشل الإصلاح")
+                    }
+            } finally {
+                _ui.value = _ui.value.copy(repairing = null)
+                opJob = null
+            }
             refresh()
         }
+    }
+
+    fun cancelOp() {
+        opJob?.cancel()
+        opJob = null
     }
 
     fun clearError() {

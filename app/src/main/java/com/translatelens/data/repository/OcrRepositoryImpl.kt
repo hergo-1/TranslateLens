@@ -8,7 +8,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.translatelens.data.image.ImageFiles
-import com.translatelens.data.image.awaitFinished
+import com.translatelens.data.image.awaitBounded
 import com.translatelens.data.image.imageResult
 import com.translatelens.data.model.OcrResult
 import com.translatelens.data.model.TextBlock
@@ -38,7 +38,8 @@ class OcrRepositoryImpl(context: Context) : OcrRepository {
             try {
                 val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
                 try {
-                    val text = recognizer.process(InputImage.fromBitmap(work, 0)).awaitFinished()
+                    val text = recognizer.process(InputImage.fromBitmap(work, 0))
+                    .awaitBounded(120_000L, "انتهت مهلة التعرف على النص. حاول بصورة أوضح.")
                     val blocks = mutableListOf<TextBlock>()
                     text.textBlocks.forEachIndexed { blockIndex, block ->
                         val ordered = block.lines.sortedWith(

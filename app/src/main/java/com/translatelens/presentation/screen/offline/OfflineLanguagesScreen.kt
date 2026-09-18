@@ -99,7 +99,35 @@ fun OfflineLanguagesScreen(
                     Text(
                         "الترجمة تحتاج نموذجَي المصدر والهدف معًا. التنزيل لمرة واحدة بالإنترنت ثم يعمل كل شيء Offline.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = secondaryColor()
+                    )
+                    if (state.checking) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Text(
+                                "جارٍ فحص النماذج المثبتة…",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = secondaryColor()
+                            )
+                        }
+                    } else if (state.targetReady != null) {
+                        Text(
+                            if (state.targetReady == true) "نموذج الهدف (${viewModel.targetDisplayName()}): مثبت"
+                            else "نموذج الهدف (${viewModel.targetDisplayName()}): غير مثبت — نزّل أي لغة لتثبيته",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (state.targetReady == true) MaterialTheme.colorScheme.primary else secondaryColor()
+                        )
+                    }
+                    Text(
+                        "حجم النموذج الواحد عادة ٢٠-٤٠MB. يظهر الحجم الدقيق بعد التثبيت.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = secondaryColor()
                     )
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth().weight(1f),
@@ -163,12 +191,20 @@ fun OfflineLanguagesScreen(
                                             Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            if (busy) {
+                                        if (busy) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
                                                 CircularProgressIndicator(
                                                     modifier = Modifier.size(24.dp),
                                                     strokeWidth = 3.dp
                                                 )
-                                            } else if (row.installed) {
+                                                OutlinedButton(onClick = { viewModel.cancelOp() }) {
+                                                    Text("إلغاء")
+                                                }
+                                            }
+                                        } else if (row.installed) {
                                                 DeleteButton(
                                                     text = "حذف النموذج",
                                                     icon = Icons.Filled.Delete,
