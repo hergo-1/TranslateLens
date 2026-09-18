@@ -113,7 +113,7 @@ class TranslationRepositoryImpl(
         } catch (_: Exception) {
             false
         }
-        mutex.withLock {
+        mutex.withLock<Unit> {
             try {
                 modelManager.deleteDownloadedModel(modelFor(languageCode)).awaitFinished()
             } catch (e: Exception) {
