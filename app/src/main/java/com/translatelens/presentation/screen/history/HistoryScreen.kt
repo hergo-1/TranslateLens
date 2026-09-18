@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,8 +38,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.translatelens.presentation.component.AppBackground
-import com.translatelens.presentation.component.AppTopBar
+import com.translatelens.presentation.component.AppFilterChip
 import com.translatelens.presentation.component.GlassCard
+import com.translatelens.presentation.component.InnerTopBar
+import com.translatelens.presentation.component.ThemeToggle
 import com.translatelens.presentation.util.formatDate
 import com.translatelens.presentation.util.rememberImageBitmap
 
@@ -63,6 +64,7 @@ fun HistoryScreen(
                 title = "السجل",
                 onBack = onBack,
                 actions = {
+                    ThemeToggle()
                     TextButton(onClick = { confirmClear = true }) { Text("مسح") }
                 }
             )
@@ -70,21 +72,21 @@ fun HistoryScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilterChip(
+                AppFilterChip(
                     selected = !favoritesOnly,
                     onClick = {
                         favoritesOnly = false
                         viewModel.showFavoritesOnly(false)
                     },
-                    label = { Text("الكل") }
+                    label = "الكل"
                 )
-                FilterChip(
+                AppFilterChip(
                     selected = favoritesOnly,
                     onClick = {
                         favoritesOnly = true
                         viewModel.showFavoritesOnly(true)
                     },
-                    label = { Text("المفضلة") }
+                    label = "المفضلة"
                 )
             }
             if (items.itemCount == 0) {

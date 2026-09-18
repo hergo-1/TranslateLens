@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.translatelens.presentation.component.AppBackground
 import com.translatelens.presentation.component.AppTopBar
+import com.translatelens.presentation.component.ThemeToggle
 import com.translatelens.presentation.component.GlassCard
 import com.translatelens.presentation.component.GradientButton
 import com.translatelens.presentation.util.languageDisplayName
@@ -46,7 +47,7 @@ fun TextTranslateScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
-            AppTopBar(title = "ترجمة نص", onBack = onBack)
+            AppTopBar(title = "ترجمة نص", onBack = onBack, actions = { ThemeToggle() })
             Column(
                 Modifier
                     .fillMaxSize()

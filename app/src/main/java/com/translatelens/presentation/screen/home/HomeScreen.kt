@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
@@ -81,55 +80,64 @@ fun HomeScreen(
             Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(16.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                ThemeToggle()
+            GlassCard(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        Spacer(Modifier.weight(1f))
+                        ThemeToggle()
+                    }
+                    GradientTitle(
+                        text = "TranslateLens",
+                        align = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        "ترجمة النصوص داخل الصور مع الحفاظ على مكانها",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.End
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    GradientButton(
+                        text = "ترجمة صورة",
+                        icon = Icons.Filled.Image,
+                        onClick = { picker.launch("image/*") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    GradientButton(
+                        text = "ترجمة بالكاميرا",
+                        icon = Icons.Filled.CameraAlt,
+                        onClick = onCamera,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    SecondaryGrid(
+                        items = listOf(
+                            Icons.Filled.TextFields to "ترجمة نص" to onText,
+                            Icons.Filled.Language to "اللغات بدون إنترنت" to onOffline,
+                            Icons.Filled.History to "السجل" to onHistory,
+                            Icons.Filled.Settings to "الإعدادات" to onSettings
+                        )
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        "English -- العربية يعمل بدون إنترنت بعد تنزيل النموذج",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
-            GradientTitle(text = "TranslateLens")
-            Text(
-                "ترجمة النصوص داخل الصور مع الحفاظ على مكانها",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(8.dp))
-            GradientButton(
-                text = "ترجمة صورة",
-                icon = Icons.Filled.Image,
-                onClick = { picker.launch("image/*") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            GradientButton(
-                text = "ترجمة بالكاميرا",
-                icon = Icons.Filled.CameraAlt,
-                onClick = onCamera,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(4.dp))
-            SecondaryGrid(
-                items = listOf(
-                    Icons.Filled.Language to "اللغات بدون إنترنت" to onOffline,
-                    Icons.Filled.TextFields to "ترجمة نص" to onText,
-                    Icons.Filled.Settings to "الإعدادات" to onSettings,
-                    Icons.Filled.History to "السجل" to onHistory
-                )
-            )
-            Spacer(Modifier.weight(1f))
-            Text(
-                "الترجمة الإنجليزية ← العربية تعمل بدون إنترنت بعد تنزيل النموذج",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-            )
         }
     }
 }

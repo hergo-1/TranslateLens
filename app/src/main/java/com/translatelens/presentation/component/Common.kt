@@ -32,6 +32,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -59,6 +61,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.translatelens.domain.repository.SettingsRepository
 import com.translatelens.presentation.theme.AppGradients
+import com.translatelens.presentation.theme.AppSpec
 import com.translatelens.presentation.theme.isAppDark
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -159,6 +162,116 @@ fun SectionTitle(title: String) {
 }
 
 @Composable
+fun InnerTopBar(
+    title: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    action: @Composable () -> Unit = {}
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "رجوع"
+            )
+        }
+        Text(
+            title,
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.weight(1f)
+        )
+        action()
+    }
+}
+
+@Composable
+fun AppFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    val dark = isAppDark()
+    val idleBg = if (dark) AppSpec.InactiveDarkBg else AppSpec.InactiveLightBg
+    val idleFg = if (dark) AppSpec.InactiveDarkFg else AppSpec.InactiveLightFg
+    val idleBorder = if (dark) AppSpec.InactiveDarkBorder else AppSpec.InactiveLightBorder
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        modifier = modifier,
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = idleBg,
+            labelColor = idleFg,
+            selectedContainerColor = AppSpec.Active,
+            selectedLabelColor = Color.White
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderColor = idleBorder,
+            selectedBorderColor = AppSpec.Active,
+            borderWidth = 1.dp,
+            selectedBorderWidth = 1.dp
+        )
+    )
+}
+
+@Composable
+fun DeleteButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null
+) {
+    val dark = isAppDark()
+    val bg = if (dark) AppSpec.DeleteDarkBg else AppSpec.DeleteLightBg
+    val fg = if (dark) AppSpec.DeleteDarkFg else AppSpec.DeleteLightFg
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = bg, contentColor = fg)
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.size(6.dp))
+        }
+        Text(text)
+    }
+}
+
+@Composable
+fun DownloadButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = AppSpec.Download,
+            contentColor = Color.White
+        )
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.size(6.dp))
+        }
+        Text(text)
+    }
+}
+
+@Composable
 fun AppBackground(content: @Composable BoxScope.() -> Unit) {
     val dark = isAppDark()
     Box(
@@ -170,8 +283,8 @@ fun AppBackground(content: @Composable BoxScope.() -> Unit) {
             val density = LocalDensity.current
             val wPx = with(density) { maxWidth.toPx() }
             val hPx = with(density) { maxHeight.toPx() }
-            val pink = if (dark) Color(0xFFEC4899).copy(alpha = 0.22f) else Color(0xFFF472B6).copy(alpha = 0.20f)
-            val purple = if (dark) Color(0xFF7C3AED).copy(alpha = 0.30f) else Color(0xFF8B5CF6).copy(alpha = 0.16f)
+            val pink = if (dark) Color(0xFFEC4899).copy(alpha = 0.14f) else Color(0xFFF472B6).copy(alpha = 0.10f)
+            val purple = if (dark) Color(0xFF7C3AED).copy(alpha = 0.20f) else Color(0xFF8B5CF6).copy(alpha = 0.08f)
             Box(
                 modifier = Modifier.fillMaxSize().background(
                     Brush.radialGradient(
@@ -203,8 +316,8 @@ fun GlassCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val dark = isAppDark()
-    val container = if (dark) Color.White.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.72f)
-    val border = if (dark) Color.White.copy(alpha = 0.14f) else Color(0xFFE3D6F8)
+    val container = if (dark) Color(0xFF1A1821) else Color(0xFFFFFFFF)
+    val border = if (dark) Color(0xFF2A2635) else Color(0xFFE2E4ED)
     val shape = RoundedCornerShape(20.dp)
     val shadowColor = if (dark) Color.Black else Color(0xFF8B5CF6).copy(alpha = 0.22f)
     val cardModifier = modifier.shadow(8.dp, shape, spotColor = shadowColor)

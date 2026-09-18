@@ -15,9 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.translatelens.R
 
-val AccentLight = Color(0xFF6B4FA8)
-val AccentDark = Color(0xFFB79CFF)
-
 val IBMPlexSansArabic = FontFamily(
     Font(R.font.ibm_plex_sans_arabic_regular, FontWeight.Normal),
     Font(R.font.ibm_plex_sans_arabic_medium, FontWeight.Medium),
@@ -26,41 +23,42 @@ val IBMPlexSansArabic = FontFamily(
 )
 
 private val LightColors = lightColorScheme(
-    primary = AccentLight,
+    primary = Color(0xFF7C4DFF),
     onPrimary = Color.White,
     primaryContainer = Color(0xFFE9E1FA),
     onPrimaryContainer = Color(0xFF231744),
     secondary = Color(0xFF5D5870),
     onSecondary = Color.White,
-    background = Color(0xFFFFFFFF),
+    background = Color(0xFFF4F5F9),
     onBackground = Color(0xFF191A1F),
     surface = Color(0xFFFFFFFF),
     onSurface = Color(0xFF191A1F),
-    surfaceVariant = Color(0xFFF2F0F6),
-    onSurfaceVariant = Color(0xFF4A4458),
-    surfaceContainer = Color(0xFFF6F4FA),
-    outline = Color(0xFFE2DEE9),
-    outlineVariant = Color(0xFFEDEAF2),
+    surfaceVariant = Color(0xFFF0F1F6),
+    onSurfaceVariant = Color(0xFF4A4D5E),
+    surfaceContainer = Color(0xFFFFFFFF),
+    surfaceContainerHigh = Color(0xFFF0F1F6),
+    outline = Color(0xFFE2E4ED),
+    outlineVariant = Color(0xFFD4D7E2),
     error = Color(0xFFB3261E)
 )
 
 private val DarkColors = darkColorScheme(
-    primary = AccentDark,
+    primary = Color(0xFFB79CFF),
     onPrimary = Color(0xFF241545),
     primaryContainer = Color(0xFF3D2A68),
     onPrimaryContainer = Color(0xFFE9E1FA),
     secondary = Color(0xFFC9C2D8),
     onSecondary = Color(0xFF2C2739),
-    background = Color(0xFF000000),
+    background = Color(0xFF111016),
     onBackground = Color(0xFFF4F2F8),
-    surface = Color(0xFF000000),
+    surface = Color(0xFF111016),
     onSurface = Color(0xFFF4F2F8),
-    surfaceVariant = Color(0xFF17161C),
-    onSurfaceVariant = Color(0xFFC9C2D8),
-    surfaceContainer = Color(0xFF131218),
-    surfaceContainerHigh = Color(0xFF1D1C22),
-    outline = Color(0xFF2C2A33),
-    outlineVariant = Color(0xFF232228),
+    surfaceVariant = Color(0xFF1F1D27),
+    onSurfaceVariant = Color(0xFFC4C2CE),
+    surfaceContainer = Color(0xFF1A1821),
+    surfaceContainerHigh = Color(0xFF1F1D27),
+    outline = Color(0xFF2A2635),
+    outlineVariant = Color(0xFF343042),
     error = Color(0xFFF2B8B5)
 )
 
@@ -151,14 +149,29 @@ fun isAppDark(): Boolean {
 
 object AppGradients {
     val Title = Brush.linearGradient(
-        listOf(Color(0xFFF472B6), Color(0xFF8B5CF6))
+        listOf(Color(0xFF7C4DFF), Color(0xFF9C6BFF))
     )
     val Button = Brush.linearGradient(
-        listOf(Color(0xFFEC4899), Color(0xFF7C3AED))
+        listOf(Color(0xFF7C4DFF), Color(0xFF9C6BFF))
     )
     val Logo = Brush.linearGradient(
-        listOf(Color(0xFFF9A8D4), Color(0xFFA78BFA))
+        listOf(Color(0xFF7C4DFF), Color(0xFF9C6BFF))
     )
+}
+
+object AppSpec {
+    val Active = Color(0xFF7C4DFF)
+    val Download = Color(0xFF6C5CE7)
+    val DeleteDarkBg = Color(0xFF221F2D)
+    val DeleteDarkFg = Color(0xFFFF6B6B)
+    val DeleteLightBg = Color(0xFFFCE8E8)
+    val DeleteLightFg = Color(0xFFD32F2F)
+    val InactiveDarkBg = Color(0xFF1F1D27)
+    val InactiveDarkFg = Color(0xFFC4C2CE)
+    val InactiveDarkBorder = Color(0xFF343042)
+    val InactiveLightBg = Color(0xFFF0F1F6)
+    val InactiveLightFg = Color(0xFF4A4D5E)
+    val InactiveLightBorder = Color(0xFFD4D7E2)
 }
 
 fun themeModeToDark(themeMode: Int, systemDark: Boolean): Boolean {

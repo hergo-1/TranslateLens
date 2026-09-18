@@ -32,7 +32,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -61,8 +60,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.translatelens.data.model.TranslatedRegion
 import com.translatelens.presentation.component.AppBackground
+import com.translatelens.presentation.component.AppFilterChip
 import com.translatelens.presentation.component.AppTopBar
 import com.translatelens.presentation.component.ErrorView
+import com.translatelens.presentation.component.ThemeToggle
 import com.translatelens.presentation.component.LoadingOverlay
 import com.translatelens.presentation.util.languageDisplayName
 import com.translatelens.presentation.util.rememberImageBitmap
@@ -91,7 +92,7 @@ fun ResultScreen(
             contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             Column(Modifier.statusBarsPadding()) {
-                AppTopBar(title = "ترجمة الصورة", onBack = onBack)
+                AppTopBar(title = "ترجمة الصورة", onBack = onBack, actions = { ThemeToggle() })
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -166,15 +167,15 @@ fun ResultScreen(
                 state.result != null -> {
                     val r = state.result!!
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
+                        AppFilterChip(
                             selected = !state.showOriginal,
                             onClick = { viewModel.toggleOriginal(false) },
-                            label = { Text("المترجمة") }
+                            label = "المترجمة"
                         )
-                        FilterChip(
+                        AppFilterChip(
                             selected = state.showOriginal,
                             onClick = { viewModel.toggleOriginal(true) },
-                            label = { Text("الأصلية") }
+                            label = "الأصلية"
                         )
                     }
                     val path = if (state.showOriginal) r.originalImagePath else r.translatedImagePath
@@ -328,20 +329,20 @@ private fun EditRegionsSheet(
                         steps = 9
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
+                        AppFilterChip(
                             selected = region.alignment == TranslatedRegion.ALIGN_START,
                             onClick = { onAlignment(region.index, TranslatedRegion.ALIGN_START) },
-                            label = { Text("بداية") }
+                            label = "بداية"
                         )
-                        FilterChip(
+                        AppFilterChip(
                             selected = region.alignment == TranslatedRegion.ALIGN_CENTER,
                             onClick = { onAlignment(region.index, TranslatedRegion.ALIGN_CENTER) },
-                            label = { Text("وسط") }
+                            label = "وسط"
                         )
-                        FilterChip(
+                        AppFilterChip(
                             selected = region.alignment == TranslatedRegion.ALIGN_END,
                             onClick = { onAlignment(region.index, TranslatedRegion.ALIGN_END) },
-                            label = { Text("نهاية") }
+                            label = "نهاية"
                         )
                     }
                 }

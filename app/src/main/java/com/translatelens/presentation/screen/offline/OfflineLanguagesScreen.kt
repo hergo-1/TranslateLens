@@ -18,13 +18,11 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -38,8 +36,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.translatelens.presentation.component.AppBackground
-import com.translatelens.presentation.component.AppTopBar
+import com.translatelens.presentation.component.DeleteButton
+import com.translatelens.presentation.component.DownloadButton
 import com.translatelens.presentation.component.GlassCard
+import com.translatelens.presentation.component.InnerTopBar
+import com.translatelens.presentation.component.ThemeToggle
 import com.translatelens.presentation.util.directionLabel
 import com.translatelens.presentation.util.formatBytes
 import com.translatelens.presentation.util.pairLabel
@@ -64,94 +65,102 @@ fun OfflineLanguagesScreen(
             Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            AppTopBar(
+            InnerTopBar(
                 title = "اللغات بدون إنترنت",
                 onBack = onBack,
-                actions = {
+                action = {
+                    ThemeToggle()
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(Icons.Filled.Refresh, contentDescription = "تحديث الحالة")
                     }
                 }
             )
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                item {
+            GlassCard(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Text(
                         "الترجمة تحتاج نموذجَي المصدر والهدف معًا. التنزيل لمرة واحدة بالإنترنت ثم يعمل كل شيء Offline.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-                items(state.rows, key = { it.language.code }) { row ->
-                    val lang = row.language
-                    val downloading = state.downloading == lang.code
-                    GlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    pairLabel(lang.code, row.targetLang),
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                if (row.installed) {
-                                    Icon(
-                                        Icons.Filled.CheckCircle,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-                            }
-                            Text(
-                                "${directionLabel(lang.code)} ← ${directionLabel(row.targetLang)}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (downloading) {
-                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                                Text("جارٍ التنزيل… قد يستغرق دقائق", style = MaterialTheme.typography.bodySmall)
-                            } else if (row.installed) {
-                                Text(
-                                    "مثبت على الجهاز" + (row.installedBytes?.let { " — ${formatBytes(it)}" } ?: ""),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            } else {
-                                Text(
-                                    "غير مثبت — الحجم: جارٍ حساب الحجم عند بدء التنزيل",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                if (downloading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 3.dp
-                                    )
-                                } else if (row.installed) {
-                                    OutlinedButton(onClick = { viewModel.delete(lang.code) }) {
-                                        Icon(Icons.Filled.Delete, null, Modifier.size(18.dp))
-                                        Spacer(Modifier.size(6.dp))
-                                        Text("حذف النموذج")
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(state.rows, key = { it.language.code }) { row ->
+                            val lang = row.language
+                            val downloading = state.downloading == lang.code
+                            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                                Column(
+                                    Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            pairLabel(lang.code, row.targetLang),
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                        if (row.installed) {
+                                            Icon(
+                                                Icons.Filled.CheckCircle,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
                                     }
-                                } else {
-                                    Button(onClick = { viewModel.download(lang) }) {
-                                        Icon(Icons.Filled.Download, null, Modifier.size(18.dp))
-                                        Spacer(Modifier.size(6.dp))
-                                        Text("تنزيل")
+                                    Text(
+                                        "${directionLabel(lang.code)} ← ${directionLabel(row.targetLang)}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    if (downloading) {
+                                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                        Text("جارٍ التنزيل… قد يستغرق دقائق", style = MaterialTheme.typography.bodySmall)
+                                    } else if (row.installed) {
+                                        Text(
+                                            "مثبت على الجهاز" + (row.installedBytes?.let { " — ${formatBytes(it)}" } ?: ""),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    } else {
+                                        Text(
+                                            "غير مثبت — الحجم: جارٍ حساب الحجم عند بدء التنزيل",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        if (downloading) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(24.dp),
+                                                strokeWidth = 3.dp
+                                            )
+                                        } else if (row.installed) {
+                                            DeleteButton(
+                                                text = "حذف النموذج",
+                                                icon = Icons.Filled.Delete,
+                                                onClick = { viewModel.delete(lang.code) }
+                                            )
+                                        } else {
+                                            DownloadButton(
+                                                text = "تنزيل",
+                                                icon = Icons.Filled.Download,
+                                                onClick = { viewModel.download(lang) }
+                                            )
+                                        }
                                     }
                                 }
                             }
