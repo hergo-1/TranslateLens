@@ -10,6 +10,7 @@ interface SettingsRepository {
     val saveHistory: Flow<Boolean>
     val imageQuality: Flow<Int>
     val modelSizes: Flow<Map<String, Long>>
+    val introSeen: Flow<Boolean>
 
     suspend fun setThemeMode(mode: Int)
     suspend fun setSourceLanguage(lang: String)
@@ -19,4 +20,5 @@ interface SettingsRepository {
     suspend fun setImageQuality(quality: Int)
     suspend fun setModelSize(pairKey: String, bytes: Long)
     suspend fun clearModelSize(pairKey: String)
+    suspend fun setIntroSeen()
 }

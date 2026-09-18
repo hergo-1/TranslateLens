@@ -30,6 +30,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,16 +41,27 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.translatelens.presentation.component.AppBackground
 import com.translatelens.presentation.component.GradientButton
 import com.translatelens.presentation.component.GradientTitle
-import com.translatelens.presentation.component.ThemeToggle
+import com.translatelens.presentation.component.secondaryColor
 import com.translatelens.presentation.theme.AppGradients
 
 @Composable
 fun SplashScreen(
-    onGetStarted: () -> Unit
+    onGetStarted: () -> Unit,
+    onAutoProceed: () -> Unit,
+    viewModel: SplashViewModel = hiltViewModel()
 ) {
+    val state by viewModel.ui.collectAsState()
+
+    LaunchedEffect(state.loading, state.showGetStarted) {
+        if (!state.loading && !state.showGetStarted) {
+            onAutoProceed()
+        }
+    }
+
     AppBackground {
         Column(
             modifier = Modifier
@@ -57,14 +70,12 @@ fun SplashScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                modifier = Modifier
+            Spacer(
+                Modifier
                     .fillMaxWidth()
-                    .statusBarsPadding(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                ThemeToggle()
-            }
+                    .statusBarsPadding()
+                    .height(8.dp)
+            )
             Spacer(Modifier.weight(1f))
             Box(
                 modifier = Modifier
@@ -90,17 +101,22 @@ fun SplashScreen(
             Text(
                 "بوابتك لترجمة النصوص داخل الصور بذكاء وسهولة مع الحفاظ على مكانها",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = secondaryColor(),
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(28.dp))
             LoadingDots()
             Spacer(Modifier.weight(1f))
-            GradientButton(
-                text = "ابدأ الآن",
-                onClick = onGetStarted,
-                modifier = Modifier.fillMaxWidth()
-            )
+            if (state.showGetStarted) {
+                GradientButton(
+                    text = "ابدأ الآن",
+                    onClick = {
+                        viewModel.onGetStarted()
+                        onGetStarted()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
             Spacer(Modifier.navigationBarsPadding())
             Spacer(Modifier.height(12.dp))
         }

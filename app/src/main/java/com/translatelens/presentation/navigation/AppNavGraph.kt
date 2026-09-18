@@ -41,6 +41,11 @@ fun AppNavGraph(
                         nav.navigate(Routes.HOME) {
                             popUpTo(Routes.SPLASH) { inclusive = true }
                         }
+                    },
+                    onAutoProceed = {
+                        nav.navigate(Routes.HOME) {
+                            popUpTo(Routes.SPLASH) { inclusive = true }
+                        }
                     }
                 )
             }

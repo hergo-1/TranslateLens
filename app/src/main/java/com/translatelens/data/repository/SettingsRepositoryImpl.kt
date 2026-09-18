@@ -26,6 +26,7 @@ class SettingsRepositoryImpl(
     override val autoDetectSource: Flow<Boolean> = dataStore.data.map { it[Keys.AUTO_DETECT] ?: false }
     override val saveHistory: Flow<Boolean> = dataStore.data.map { it[Keys.SAVE_HISTORY] ?: true }
     override val imageQuality: Flow<Int> = dataStore.data.map { it[Keys.IMAGE_QUALITY] ?: 0 }
+    override val introSeen: Flow<Boolean> = dataStore.data.map { it[Keys.INTRO_SEEN] ?: false }
     override val modelSizes: Flow<Map<String, Long>> = dataStore.data.map { prefs ->
         prefs.asMap().entries.mapNotNull { (key, value) ->
             val name = key.name
@@ -61,6 +62,10 @@ class SettingsRepositoryImpl(
         dataStore.edit { it[Keys.IMAGE_QUALITY] = quality }
     }
 
+    override suspend fun setIntroSeen() {
+        dataStore.edit { it[Keys.INTRO_SEEN] = true }
+    }
+
     override suspend fun setModelSize(pairKey: String, bytes: Long) {
         if (bytes <= 0) return
         dataStore.edit { it[longPreferencesKey(MODEL_SIZE_PREFIX + pairKey)] = bytes }
@@ -77,6 +82,7 @@ class SettingsRepositoryImpl(
         val AUTO_DETECT = booleanPreferencesKey("auto_detect")
         val SAVE_HISTORY = booleanPreferencesKey("save_history")
         val IMAGE_QUALITY = intPreferencesKey("image_quality")
+        val INTRO_SEEN = booleanPreferencesKey("intro_seen")
     }
 
     companion object {
