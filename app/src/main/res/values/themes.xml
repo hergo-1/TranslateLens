@@ -1,7 +1,13 @@
 <resources>
     <style name="Theme.TranslateLens" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">@font/ibm_plex_sans_arabic</item>
+        <item name="android:textViewStyle">@style/TranslateLensTextView</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+    <style name="TranslateLensTextView" parent="android:Widget.TextView">
+        <item name="android:fontFamily">@font/ibm_plex_sans_arabic</item>
     </style>
 </resources>
