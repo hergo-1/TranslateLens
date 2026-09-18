@@ -6,6 +6,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -64,6 +65,13 @@ private val DarkColors = darkColorScheme(
 )
 
 private val AppTypography = Typography(
+    displaySmall = TextStyle(
+        fontFamily = IBMPlexSansArabic,
+        fontWeight = FontWeight.Bold,
+        fontSize = 34.sp,
+        lineHeight = 44.sp,
+        letterSpacing = 0.sp
+    ),
     headlineSmall = TextStyle(
         fontFamily = IBMPlexSansArabic,
         fontWeight = FontWeight.SemiBold,
@@ -131,6 +139,25 @@ fun TranslateLensTheme(
         colorScheme = if (darkTheme) DarkColors else LightColors,
         typography = AppTypography,
         content = content
+    )
+}
+
+@Composable
+fun isAppDark(): Boolean {
+    val bg = MaterialTheme.colorScheme.background
+    val lum = 0.299f * bg.red + 0.587f * bg.green + 0.114f * bg.blue
+    return lum < 0.5f
+}
+
+object AppGradients {
+    val Title = Brush.linearGradient(
+        listOf(Color(0xFFF472B6), Color(0xFF8B5CF6))
+    )
+    val Button = Brush.linearGradient(
+        listOf(Color(0xFFEC4899), Color(0xFF7C3AED))
+    )
+    val Logo = Brush.linearGradient(
+        listOf(Color(0xFFF9A8D4), Color(0xFFA78BFA))
     )
 }
 

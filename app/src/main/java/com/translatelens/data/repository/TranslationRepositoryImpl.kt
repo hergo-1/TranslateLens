@@ -57,6 +57,12 @@ class TranslationRepositoryImpl(
         sourceLang: String,
         targetLang: String
     ): List<TranslationResult> {
+        val missing = missingModels(sourceLang, targetLang)
+        if (missing.isNotEmpty()) {
+            throw IllegalStateException(
+                "نماذج الترجمة غير مكتملة. نزّل من شاشة اللغات: " + missing.joinToString("، ")
+            )
+        }
         val src = mlKitCode(sourceLang)
         val dst = mlKitCode(targetLang)
         return mutex.withLock {
@@ -86,10 +92,15 @@ class TranslationRepositoryImpl(
     override suspend fun downloadLanguageModel(language: OfflineLanguage, targetLang: String): Result<Unit> = imageResult {
         val before = measureModelsSize()
         mutex.withLock {
-            val model = modelFor(language.code, targetLang)
-            modelManager.download(model, anyNetwork).awaitFinished()
+            modelManager.download(modelFor(language.code), anyNetwork).awaitFinished()
+            if (!sameLanguage(language.code, targetLang)) {
+                modelManager.download(modelFor(targetLang), anyNetwork).awaitFinished()
+            }
         }
         refreshModels(targetLang)
+        if (!isModelDownloaded(language.code, targetLang)) {
+            throw IllegalStateException("اكتمل التنزيل لكن تعذر تأكيد تثبيت النموذج. أعد المحاولة.")
+        }
         val after = measureModelsSize()
         if (before != null && after != null && after > before) {
             settings.setModelSize(SettingsRepositoryImpl.pairKey(language.code, targetLang), after - before)
@@ -97,22 +108,59 @@ class TranslationRepositoryImpl(
     }
 
     override suspend fun deleteLanguageModel(languageCode: String, targetLang: String): Result<Unit> = imageResult {
+        val existedBefore = isModelDownloaded(languageCode, targetLang)
+        if (!existedBefore) {
+            settings.clearModelSize(SettingsRepositoryImpl.pairKey(languageCode, targetLang))
+            refreshModels(targetLang)
+            throw IllegalStateException("النموذج غير مثبت أصلًا")
+        }
         mutex.withLock {
-            val model = modelFor(languageCode, targetLang)
-            modelManager.deleteDownloadedModel(model).awaitFinished()
+            modelManager.deleteDownloadedModel(modelFor(languageCode)).awaitFinished()
         }
         settings.clearModelSize(SettingsRepositoryImpl.pairKey(languageCode, targetLang))
         refreshModels(targetLang)
+        if (isModelDownloaded(languageCode, targetLang)) {
+            throw IllegalStateException("تعذر حذف النموذج. أغلق التطبيق وأعد المحاولة.")
+        }
     }
 
     override suspend fun isModelDownloaded(sourceLang: String, targetLang: String): Boolean {
         return try {
             mutex.withLock {
-                modelManager.isModelDownloaded(modelFor(sourceLang, targetLang)).awaitFinished()
+                checkDownloadedInternal(sourceLang) && checkDownloadedInternal(targetLang)
             }
         } catch (_: Exception) {
             false
         }
+    }
+
+    private suspend fun missingModels(sourceLang: String, targetLang: String): List<String> {
+        return try {
+            mutex.withLock {
+                val missing = mutableListOf<String>()
+                if (!checkDownloadedInternal(sourceLang)) {
+                    missing.add(displayName(sourceLang))
+                }
+                if (!sameLanguage(sourceLang, targetLang) && !checkDownloadedInternal(targetLang)) {
+                    missing.add(displayName(targetLang))
+                }
+                missing
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private suspend fun checkDownloadedInternal(code: String): Boolean {
+        return try {
+            modelManager.isModelDownloaded(modelFor(code)).awaitFinished()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun sameLanguage(a: String, b: String): Boolean {
+        return mlKitCode(a) == mlKitCode(b)
     }
 
     override suspend fun isLanguageDownloaded(languageCode: String): Boolean {
@@ -162,8 +210,12 @@ class TranslationRepositoryImpl(
         return total
     }
 
-    private fun modelFor(sourceCode: String, targetLang: String): TranslateRemoteModel {
-        return TranslateRemoteModel.Builder(mlKitCode(sourceCode)).build()
+    private fun modelFor(code: String): TranslateRemoteModel {
+        return TranslateRemoteModel.Builder(mlKitCode(code)).build()
+    }
+
+    private fun displayName(code: String): String {
+        return OfflineLanguages.AVAILABLE_LANGUAGES.firstOrNull { it.code == code }?.nativeName ?: code
     }
 
     private fun mlKitCode(code: String): String {

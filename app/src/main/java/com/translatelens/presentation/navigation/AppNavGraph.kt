@@ -16,6 +16,7 @@ import com.translatelens.presentation.screen.home.HomeScreen
 import com.translatelens.presentation.screen.offline.OfflineLanguagesScreen
 import com.translatelens.presentation.screen.result.ResultScreen
 import com.translatelens.presentation.screen.settings.SettingsScreen
+import com.translatelens.presentation.screen.splash.SplashScreen
 import com.translatelens.presentation.screen.text.TextTranslateScreen
 import com.translatelens.presentation.theme.TranslateLensTheme
 import com.translatelens.presentation.theme.themeModeToDark
@@ -32,8 +33,17 @@ fun AppNavGraph(
     TranslateLensTheme(darkTheme = themeModeToDark(themeMode, systemDark)) {
         NavHost(
             navController = nav,
-            startDestination = if (startImagePath != null) Routes.result(startImagePath) else Routes.HOME
+            startDestination = if (startImagePath != null) Routes.result(startImagePath) else Routes.SPLASH
         ) {
+            composable(Routes.SPLASH) {
+                SplashScreen(
+                    onGetStarted = {
+                        nav.navigate(Routes.HOME) {
+                            popUpTo(Routes.SPLASH) { inclusive = true }
+                        }
+                    }
+                )
+            }
             composable(Routes.HOME) {
                 HomeScreen(
                     onCamera = { nav.navigate(Routes.CAMERA) },

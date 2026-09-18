@@ -1,6 +1,7 @@
 package com.translatelens.presentation.navigation
 
 object Routes {
+    const val SPLASH = "splash"
     const val HOME = "home"
     const val CAMERA = "camera"
     const val TEXT_TRANSLATE = "text_translate"

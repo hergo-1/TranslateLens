@@ -60,6 +60,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.translatelens.data.model.TranslatedRegion
+import com.translatelens.presentation.component.AppBackground
 import com.translatelens.presentation.component.AppTopBar
 import com.translatelens.presentation.component.ErrorView
 import com.translatelens.presentation.component.LoadingOverlay
@@ -83,9 +84,11 @@ fun ResultScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snack) },
-        contentWindowInsets = WindowInsets.safeDrawing,
+    AppBackground {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snack) },
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             Column(Modifier.statusBarsPadding()) {
                 AppTopBar(title = "ترجمة الصورة", onBack = onBack)
@@ -194,6 +197,7 @@ fun ResultScreen(
                     Spacer(Modifier.height(8.dp))
                 }
             }
+        }
         }
     }
 
