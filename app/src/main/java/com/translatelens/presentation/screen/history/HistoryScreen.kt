@@ -60,10 +60,10 @@ fun HistoryScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
-            AppTopBar(
+            InnerTopBar(
                 title = "السجل",
                 onBack = onBack,
-                actions = {
+                action = {
                     ThemeToggle()
                     TextButton(onClick = { confirmClear = true }) { Text("مسح") }
                 }
