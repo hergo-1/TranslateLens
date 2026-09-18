@@ -3,6 +3,7 @@ package com.translatelens.data.model
 import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.RectF
+import kotlin.math.atan2
 
 data class TextBlock(
     val text: String,
@@ -21,7 +22,7 @@ data class TextBlock(
         if (cornerPoints.size >= 2) {
             val p1 = cornerPoints[0]
             val p2 = cornerPoints[1]
-            return Math.atan2(p2.y - p1.y, p2.x - p1.x).toFloat()
+            return atan2(p2.y - p1.y, p2.x - p1.x)
         }
         return 0f
     }
