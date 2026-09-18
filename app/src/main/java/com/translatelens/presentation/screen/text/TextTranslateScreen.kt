@@ -1,5 +1,6 @@
 package com.translatelens.presentation.screen.text
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,11 +27,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.translatelens.presentation.component.AppBackground
 import com.translatelens.presentation.component.AppTopBar
-import com.translatelens.presentation.component.ThemeToggle
 import com.translatelens.presentation.component.GlassCard
 import com.translatelens.presentation.component.GradientButton
 import com.translatelens.presentation.component.bodyColor
@@ -49,7 +51,7 @@ fun TextTranslateScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
-            AppTopBar(title = "ترجمة نص", onBack = onBack, actions = { ThemeToggle() })
+            AppTopBar(title = "ترجمة نص", onBack = onBack)
             Column(
                 Modifier
                     .fillMaxSize()
@@ -77,7 +79,7 @@ fun TextTranslateScreen(
                     text = if (state.loading) "جاري الترجمة…" else "ترجم",
                     onClick = { viewModel.translate() },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.loading && state.input.isNotBlank()
+                    enabled = !state.loading
                 )
                 if (state.error != null) {
                     Text(state.error!!, color = MaterialTheme.colorScheme.error)
@@ -127,7 +129,13 @@ private fun LangDrop(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier.menuAnchor().fillMaxWidth()
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+        ) {
             options.forEach { code ->
                 DropdownMenuItem(
                     text = { Text(languageDisplayName(code)) },

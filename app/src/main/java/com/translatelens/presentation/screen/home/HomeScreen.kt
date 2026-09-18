@@ -97,7 +97,7 @@ fun HomeScreen(
                     }
                     GradientTitle(
                         text = "TranslateLens",
-                        align = TextAlign.End,
+                        align = TextAlign.Right,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
@@ -105,7 +105,7 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.Right
                     )
                     Spacer(Modifier.height(8.dp))
                     GradientButton(

@@ -45,8 +45,7 @@ import com.translatelens.presentation.component.InnerTopBar
 import com.translatelens.presentation.component.ThemeToggle
 import com.translatelens.presentation.component.bodyColor
 import com.translatelens.presentation.component.secondaryColor
-import com.translatelens.presentation.component.titleColor
-import com.translatelens.presentation.util.directionLabel
+import com.translatelens.presentation.component.titleColorimport com.translatelens.presentation.util.directionLabel
 import com.translatelens.presentation.util.formatBytes
 import com.translatelens.presentation.util.pairLabel
 
@@ -83,7 +82,11 @@ fun OfflineLanguagesScreen(
                 action = {
                     ThemeToggle()
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "تحديث الحالة")
+                        Icon(
+                            Icons.Filled.Refresh,
+                            contentDescription = "تحديث الحالة",
+                            tint = titleColor()
+                        )
                     }
                 }
             )
